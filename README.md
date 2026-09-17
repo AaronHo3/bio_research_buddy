@@ -1,5 +1,7 @@
 # Bio Research Copilot
 
+[![CI](https://github.com/AaronHo3/bio_research_buddy/actions/workflows/ci.yml/badge.svg)](https://github.com/AaronHo3/bio_research_buddy/actions/workflows/ci.yml)
+
 Status: Stage 1 complete. A tested command-line tool retrieves PubMed records and normalizes them into typed domain objects. No embeddings, language model, database, or web interface exist yet.
 
 An evidence-grounded research assistant for biomedical literature. The application will retrieve relevant papers, synthesize a concise answer, and connect claims to inspectable evidence.
