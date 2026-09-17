@@ -86,7 +86,21 @@ def run(argv: Sequence[str], source: LiteratureSource) -> int:
     return EXIT_OK
 
 
+def ensure_utf8_output() -> None:
+    """Force UTF-8 on stdout/stderr.
+
+    Windows consoles default Python to a legacy code page (cp1252), which cannot
+    encode characters common in biomedical titles such as Greek letters. Without
+    this, printing a title containing a beta crashes with UnicodeEncodeError.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    ensure_utf8_output()
     settings = Settings()
     with httpx.Client(timeout=settings.http_timeout_seconds) as http:
         source = PubMedClient(

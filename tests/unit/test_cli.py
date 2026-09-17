@@ -4,6 +4,8 @@ The golden file pins the exact bytes the JSON output must produce for the
 recorded PubMed fixture. If a change alters output, the diff is the review.
 """
 
+import io
+import sys
 from pathlib import Path
 
 import pytest
@@ -13,8 +15,14 @@ from bio_research_copilot.adapters.literature import (
     LiteratureSourceUnavailableError,
 )
 from bio_research_copilot.adapters.pubmed import parse_efetch_xml
-from bio_research_copilot.cli import EXIT_BAD_INPUT, EXIT_OK, EXIT_SOURCE_FAILED, run
-from bio_research_copilot.domain import Paper, SearchQuery
+from bio_research_copilot.cli import (
+    EXIT_BAD_INPUT,
+    EXIT_OK,
+    EXIT_SOURCE_FAILED,
+    ensure_utf8_output,
+    run,
+)
+from bio_research_copilot.domain import Paper, SearchQuery, Source
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 RECORDED_PAPERS = parse_efetch_xml((FIXTURES / "pubmed" / "efetch_crispr.xml").read_text("utf-8"))
@@ -105,6 +113,27 @@ def test_blank_question_is_exit_2(capsys: pytest.CaptureFixture[str]) -> None:
 def test_limit_out_of_range_is_exit_2(capsys: pytest.CaptureFixture[str]) -> None:
     assert run(["search", "q", "--limit", "0"], StubSource()) == EXIT_BAD_INPUT
     assert "error: invalid input" in capsys.readouterr().err
+
+
+def test_non_ascii_title_survives_a_legacy_console_encoding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: Windows consoles default to cp1252, which cannot encode a Greek beta."""
+    paper = Paper(
+        source=Source.PUBMED,
+        source_id="1",
+        title="Amyloid-β and tau in Alzheimer's disease",
+        url="https://pubmed.ncbi.nlm.nih.gov/1/",
+    )
+    raw = io.BytesIO()
+    legacy_stdout = io.TextIOWrapper(raw, encoding="cp1252", write_through=True)
+    monkeypatch.setattr(sys, "stdout", legacy_stdout)
+
+    ensure_utf8_output()
+    code = run(["search", "q", "--format", "table"], StubSource([paper]))
+
+    assert code == EXIT_OK
+    assert "Amyloid-β" in raw.getvalue().decode("utf-8")
 
 
 def test_help_carries_disclaimer(capsys: pytest.CaptureFixture[str]) -> None:
