@@ -10,19 +10,23 @@ Implemented as of Stage 2:
 bio-copilot search "<question>" --limit N --format json|table
 bio-copilot ingest "<question>" --limit N [--db PATH]
 bio-copilot show <source_id> [--source pubmed] [--db PATH]
+bio-copilot passages <source_id> [--source pubmed] [--db PATH]
   -> cli.py                     composition root: Settings -> httpx.Client, PubMedClient, SqliteRepository
   -> application/search.py      search_papers(source, question, max_results)
-  -> application/ingest.py      ingest_papers(source, repository, ...) -> IngestReport manifest
+  -> application/ingest.py      ingest_papers(source, repository, ...) -> upsert, chunk, record -> IngestReport
   -> adapters/literature.py     LiteratureSource protocol + typed error hierarchy
   -> adapters/pubmed.py         esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
   -> adapters/resilience.py     RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
   -> adapters/persistence.py    PaperRepository protocol, UpsertResult, RetrievalRecord
-  -> adapters/sqlite_repository.py  stdlib sqlite3; tables papers, retrievals, retrieval_papers
-  -> domain/models.py           Paper, PublicationDate, SearchQuery (frozen Pydantic models)
+  -> adapters/sqlite_repository.py  stdlib sqlite3; tables papers, retrievals, retrieval_papers, passages
+  -> domain/models.py           Paper, PublicationDate, Passage, SearchQuery (frozen Pydantic models)
+  -> domain/chunking.py         Chunker protocol; SectionChunker ("section-v1"): title + one passage per abstract section
   -> stdout (JSON or table); errors to stderr; exit 1 dependency failed, 2 bad input, 3 not found
 ```
 
 Persistence: papers are keyed on `(source, source_id)` and upserted idempotently; `first_seen_at` is set once, `last_seen_at` refreshes. Each ingest run writes a `retrievals` row plus one `retrieval_papers` row per result with its rank, which is the provenance manifest. Authors are stored as JSON, partial dates as three nullable integers. Timestamps are ISO 8601 and must be timezone-aware. Schema version is tracked with `PRAGMA user_version`.
+
+Passages: each ingested paper is split by the named chunking strategy and its passages replace any stored earlier, so a shrunken abstract leaves no stale chunks. `chunk_id` is `source:source_id:position`, stable across runs; `content_hash` (SHA-256 of the text) changes when the text does, which later lets embeddings detect staleness. The strategy name is stored on every row.
 
 Observed in live use: PubMed's relevance sort is not stable across identical calls made seconds apart. Two consecutive ingests of the same question returned overlapping but different top-3 sets. Determinism holds for a given response, not for the live service; the evaluation set in Stage 3 must therefore be built from stored records, not re-fetched each run.
 
@@ -30,7 +34,7 @@ Boundary enforcement is tested: `domain/` imports no adapter code and `applicati
 
 Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
 
-Not yet implemented: pagination, passages/chunking, embeddings, synthesis, API, UI.
+Not yet implemented: pagination, retrieval over stored passages, evaluation set, embeddings, synthesis, API, UI.
 
 ## Initial vertical slice
 
@@ -88,6 +92,13 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - Choice: stdlib `sqlite3` behind a `PaperRepository` protocol. No ORM, no server, no Docker yet.
 - Alternatives: PostgreSQL from the start (Docker Compose, slower tests, setup before value); SQLAlchemy over SQLite for a configuration-only switch later (an ORM to learn now for a benefit not yet needed).
 - Consequence: instant tests with `:memory:` databases and a single-file store. The Stage 4 move to PostgreSQL is a second repository implementation plus a data migration, which is a bounded, well-understood job.
+
+### ADR-006: One passage per abstract section, not fixed windows
+
+- Context: passages are the unit of retrieval and citation. PubMed abstracts run 150 to 300 words and are sometimes labelled (BACKGROUND, RESULTS, ...).
+- Choice: `SectionChunker` emits the title as one passage and then one passage per abstract section (the whole abstract when unlabelled). Deterministic positional ids, content hashes, and the strategy name are stored with each passage.
+- Alternatives: sentence windows with overlap (finer citation targets, but a sentence splitter, near-duplicate chunks, and more rows for the same content); fixed character windows (fully general, but cuts mid-sentence and cites half-thoughts).
+- Consequence: no sentence is split from its neighbours, and the evaluation in Stage 3 judges whole sections. If full text ever arrives, a windowed strategy is added as `window-v1` and both can coexist in the data because every passage names its strategy.
 
 ## Open decisions
 

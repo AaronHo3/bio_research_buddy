@@ -8,7 +8,7 @@ import pytest
 from bio_research_copilot.adapters.persistence import PersistenceError, RetrievedPaperRef
 from bio_research_copilot.adapters.pubmed import parse_efetch_xml
 from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
-from bio_research_copilot.domain import Paper, PublicationDate, Source
+from bio_research_copilot.domain import Paper, PublicationDate, SectionChunker, Source
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "pubmed"
 RECORDED = parse_efetch_xml((FIXTURES / "efetch_crispr.xml").read_text(encoding="utf-8"))
@@ -124,6 +124,45 @@ class TestRetrievals:
         assert repo.get_retrieval(999) is None
 
 
+class TestPassages:
+    def test_round_trips_in_position_order(self, repo: SqliteRepository) -> None:
+        repo.upsert_papers(RECORDED, seen_at=T1)
+        expected = SectionChunker().split(RECORDED[0])
+        assert repo.replace_passages(list(reversed(expected))) == 2
+        assert repo.get_passages(Source.PUBMED, RECORDED[0].source_id) == expected
+
+    def test_replace_removes_stale_chunks(self, repo: SqliteRepository) -> None:
+        long_paper = minimal("8", abstract="A: one.\n\nB: two.\n\nC: three.")
+        repo.upsert_papers([long_paper], seen_at=T1)
+        repo.replace_passages(SectionChunker().split(long_paper))
+        assert repo.count_passages() == 4
+
+        short_paper = minimal("8", abstract="Only one now.")
+        repo.upsert_papers([short_paper], seen_at=T2)
+        repo.replace_passages(SectionChunker().split(short_paper))
+        assert [p.text for p in repo.get_passages(Source.PUBMED, "8")] == [
+            "Paper 8",
+            "Only one now.",
+        ]
+
+    def test_replace_touches_only_the_papers_given(self, repo: SqliteRepository) -> None:
+        repo.upsert_papers(RECORDED, seen_at=T1)
+        for paper in RECORDED:
+            repo.replace_passages(SectionChunker().split(paper))
+        repo.replace_passages(SectionChunker().split(RECORDED[1]))
+        assert repo.count_passages() == 6
+
+    def test_unknown_paper_is_rejected(self, repo: SqliteRepository) -> None:
+        with pytest.raises(PersistenceError, match="not stored"):
+            repo.replace_passages(SectionChunker().split(minimal("404")))
+
+    def test_unknown_paper_has_no_passages(self, repo: SqliteRepository) -> None:
+        assert repo.get_passages(Source.PUBMED, "nope") == []
+
+    def test_empty_list_is_a_no_op(self, repo: SqliteRepository) -> None:
+        assert repo.replace_passages([]) == 0
+
+
 class TestDurability:
     def test_data_survives_close_and_reopen(self, tmp_path: Path) -> None:
         db = tmp_path / "nested" / "store.sqlite"
@@ -139,7 +178,7 @@ class TestDurability:
             first.upsert_papers([minimal()], seen_at=T1)
         with SqliteRepository.open(db) as second:
             version = second._conn.execute("PRAGMA user_version").fetchone()[0]
-            assert version == 1
+            assert version == 2
             assert second.count_papers() == 1
 
     def test_unopenable_path_is_persistence_error(self, tmp_path: Path) -> None:

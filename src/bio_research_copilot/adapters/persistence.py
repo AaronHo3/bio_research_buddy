@@ -9,7 +9,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from bio_research_copilot.domain import Paper, Source
+from bio_research_copilot.domain import Paper, Passage, Source
 
 
 class PersistenceError(Exception):
@@ -62,3 +62,16 @@ class PaperRepository(Protocol):
         ...
 
     def get_retrieval(self, retrieval_id: int) -> RetrievalRecord | None: ...
+
+    def replace_passages(self, passages: list[Passage]) -> int:
+        """Replace every stored passage of each paper mentioned, so stale chunks vanish.
+
+        Returns the number of passages written. Every paper must already exist.
+        """
+        ...
+
+    def get_passages(self, source: Source, source_id: str) -> list[Passage]:
+        """All passages of one paper in position order; empty if none or paper unknown."""
+        ...
+
+    def count_passages(self) -> int: ...

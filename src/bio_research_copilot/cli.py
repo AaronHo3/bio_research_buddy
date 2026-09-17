@@ -84,6 +84,18 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     show.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
+
+    passages = subparsers.add_parser("passages", help="Print the stored passages of one paper.")
+    passages.add_argument("source_id", help="The paper's identifier within its source.")
+    passages.add_argument(
+        "--source",
+        choices=[s.value for s in Source],
+        default=Source.PUBMED.value,
+        help="Literature source (default: pubmed).",
+    )
+    passages.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
     return parser
 
 
@@ -130,10 +142,23 @@ def _cmd_show(args: argparse.Namespace, runtime: Runtime) -> int:
     return EXIT_OK
 
 
+def _cmd_passages(args: argparse.Namespace, runtime: Runtime) -> int:
+    with runtime.open_repository(args.db) as repository:
+        passages = repository.get_passages(Source(args.source), args.source_id)
+    if not passages:
+        print(
+            f"error: no stored passages for {args.source} paper {args.source_id}", file=sys.stderr
+        )
+        return EXIT_NOT_FOUND
+    print(json.dumps([p.model_dump(mode="json") for p in passages], indent=2, ensure_ascii=False))
+    return EXIT_OK
+
+
 _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "search": _cmd_search,
     "ingest": _cmd_ingest,
     "show": _cmd_show,
+    "passages": _cmd_passages,
 }
 
 

@@ -62,6 +62,26 @@ class Paper(BaseModel):
     url: str = Field(pattern=r"^https?://")
 
 
+class Passage(BaseModel):
+    """A citable span of one paper, produced by a named chunking strategy.
+
+    ``chunk_id`` is deterministic from the paper identity and position, so the
+    same paper always yields the same ids. ``content_hash`` changes when the
+    text changes, which lets later stages detect stale embeddings.
+    """
+
+    model_config = _STRICT
+
+    source: Source
+    source_id: str = Field(min_length=1)
+    chunk_id: str = Field(min_length=1)
+    position: int = Field(ge=0, description="Order within the paper, starting at 0.")
+    section: str = Field(min_length=1, description='"title", "abstract", or a section label.')
+    text: str = Field(min_length=1)
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$", description="SHA-256 of ``text``.")
+    strategy: str = Field(min_length=1, description="Name and version of the chunker used.")
+
+
 class SearchQuery(BaseModel):
     """A user's research question as submitted to the retrieval pipeline."""
 

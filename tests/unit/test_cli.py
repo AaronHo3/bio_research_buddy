@@ -235,6 +235,25 @@ def test_show_unknown_id_is_exit_3(db: Path, capsys: pytest.CaptureFixture[str])
     assert capsys.readouterr().err == "error: no stored pubmed paper with id 0\n"
 
 
+def test_passages_prints_stored_chunks(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS))
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    code = run(["passages", "24157548", "--db", str(db)], rt)
+    assert code == EXIT_OK
+    shown = json.loads(capsys.readouterr().out)
+    assert [p["chunk_id"] for p in shown] == ["pubmed:24157548:0", "pubmed:24157548:1"]
+    assert shown[0]["section"] == "title"
+    assert shown[1]["text"] == RECORDED_PAPERS[0].abstract
+
+
+def test_passages_unknown_id_is_exit_3(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    code = run(["passages", "0", "--db", str(db)], runtime(StubSource()))
+    assert code == EXIT_NOT_FOUND
+    assert capsys.readouterr().err == "error: no stored passages for pubmed paper 0\n"
+
+
 def test_show_unopenable_db_is_exit_1(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     blocker = tmp_path / "file"
     blocker.write_text("x")

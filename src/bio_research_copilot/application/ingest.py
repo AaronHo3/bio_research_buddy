@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 
 from bio_research_copilot.adapters.literature import LiteratureSource
 from bio_research_copilot.adapters.persistence import PaperRepository
-from bio_research_copilot.domain import SearchQuery
+from bio_research_copilot.domain import Chunker, SearchQuery, SectionChunker
 
 
 def utc_now() -> datetime:
@@ -31,6 +31,8 @@ class IngestReport(BaseModel):
     papers_fetched: int
     papers_inserted: int
     papers_updated: int
+    passages_written: int
+    chunking_strategy: str
     paper_ids: list[str]
 
 
@@ -40,13 +42,17 @@ def ingest_papers(
     question: str,
     max_results: int,
     *,
+    chunker: Chunker | None = None,
     clock: Callable[[], datetime] = utc_now,
 ) -> IngestReport:
-    """Search, upsert, and record. Raises the same errors as the source and repository."""
+    """Search, upsert, chunk, and record. Raises the same errors as the source and repository."""
+    chunker = chunker or SectionChunker()
     query = SearchQuery(raw=question, max_results=max_results)
     papers = source.search(query)
     now = clock()
     result = repository.upsert_papers(papers, seen_at=now)
+    passages = [passage for paper in papers for passage in chunker.split(paper)]
+    written = repository.replace_passages(passages)
     retrieval_id = repository.record_retrieval(
         query.raw, query.max_results, papers, retrieved_at=now
     )
@@ -58,5 +64,7 @@ def ingest_papers(
         papers_fetched=len(papers),
         papers_inserted=result.inserted,
         papers_updated=result.updated,
+        passages_written=written,
+        chunking_strategy=chunker.name,
         paper_ids=[p.source_id for p in papers],
     )

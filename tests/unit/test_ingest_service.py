@@ -73,6 +73,23 @@ def test_invalid_question_never_reaches_source_or_store(repo: SqliteRepository) 
     assert repo.count_papers() == 0
 
 
+def test_ingest_writes_passages_and_reports_strategy(repo: SqliteRepository) -> None:
+    report = ingest_papers(FakeSource(RECORDED), repo, "q", 3, clock=lambda: T1)
+    assert report.passages_written == 6  # title + abstract for each of 3 papers
+    assert report.chunking_strategy == "section-v1"
+    assert repo.count_passages() == 6
+    stored = repo.get_passages(Source.PUBMED, "24157548")
+    assert [p.section for p in stored] == ["title", "abstract"]
+    assert stored[1].text == RECORDED[0].abstract
+
+
+def test_reingest_does_not_duplicate_passages(repo: SqliteRepository) -> None:
+    source = FakeSource(RECORDED)
+    ingest_papers(source, repo, "q", 3, clock=lambda: T1)
+    ingest_papers(source, repo, "q", 3, clock=lambda: T1)
+    assert repo.count_passages() == 6
+
+
 def test_stored_paper_matches_fetched_paper(repo: SqliteRepository) -> None:
     ingest_papers(FakeSource(RECORDED), repo, "q", 3, clock=lambda: T1)
     assert repo.get_paper(Source.PUBMED, "28375731") == RECORDED[1]

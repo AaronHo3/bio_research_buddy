@@ -23,9 +23,11 @@ from bio_research_copilot.adapters.persistence import (
     RetrievedPaperRef,
     UpsertResult,
 )
-from bio_research_copilot.domain import Paper, PublicationDate, Source
+from bio_research_copilot.domain import Paper, Passage, PublicationDate, Source
 
-SCHEMA_VERSION = 1
+# Bumped when tables change. So far every change is additive and handled by
+# CREATE TABLE IF NOT EXISTS; a real migration step is needed once a table changes shape.
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS papers (
@@ -59,6 +61,20 @@ CREATE TABLE IF NOT EXISTS retrieval_papers (
     PRIMARY KEY (retrieval_id, rank),
     FOREIGN KEY (source, source_id) REFERENCES papers(source, source_id)
 );
+
+CREATE TABLE IF NOT EXISTS passages (
+    chunk_id     TEXT    PRIMARY KEY,
+    source       TEXT    NOT NULL,
+    source_id    TEXT    NOT NULL,
+    position     INTEGER NOT NULL,
+    section      TEXT    NOT NULL,
+    text         TEXT    NOT NULL,
+    content_hash TEXT    NOT NULL,
+    strategy     TEXT    NOT NULL,
+    FOREIGN KEY (source, source_id) REFERENCES papers(source, source_id)
+);
+
+CREATE INDEX IF NOT EXISTS passages_by_paper ON passages (source, source_id, position);
 """
 
 _UPSERT_PAPER = """
@@ -209,6 +225,62 @@ class SqliteRepository:
                 for r in rows
             ],
         )
+
+    # -- passages ------------------------------------------------------------
+
+    def replace_passages(self, passages: list[Passage]) -> int:
+        papers = {(p.source.value, p.source_id) for p in passages}
+        try:
+            with self._conn:
+                self._conn.executemany(
+                    "DELETE FROM passages WHERE source = ? AND source_id = ?", sorted(papers)
+                )
+                self._conn.executemany(
+                    "INSERT INTO passages (chunk_id, source, source_id, position,"
+                    " section, text, content_hash, strategy)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        (
+                            p.chunk_id,
+                            p.source.value,
+                            p.source_id,
+                            p.position,
+                            p.section,
+                            p.text,
+                            p.content_hash,
+                            p.strategy,
+                        )
+                        for p in passages
+                    ],
+                )
+        except sqlite3.IntegrityError as exc:
+            msg = f"passage references a paper that is not stored, or duplicates a chunk id: {exc}"
+            raise PersistenceError(msg) from exc
+        return len(passages)
+
+    def get_passages(self, source: Source, source_id: str) -> list[Passage]:
+        rows = self._conn.execute(
+            "SELECT chunk_id, source, source_id, position, section, text, content_hash, strategy"
+            " FROM passages WHERE source = ? AND source_id = ? ORDER BY position",
+            (source.value, source_id),
+        ).fetchall()
+        return [
+            Passage(
+                source=Source(r["source"]),
+                source_id=r["source_id"],
+                chunk_id=r["chunk_id"],
+                position=r["position"],
+                section=r["section"],
+                text=r["text"],
+                content_hash=r["content_hash"],
+                strategy=r["strategy"],
+            )
+            for r in rows
+        ]
+
+    def count_passages(self) -> int:
+        count: int = self._conn.execute("SELECT COUNT(*) FROM passages").fetchone()[0]
+        return count
 
 
 def _stamp(moment: datetime) -> str:
