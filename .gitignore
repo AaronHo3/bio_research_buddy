@@ -17,6 +17,7 @@ notes/
 scratch/
 *.private.md
 judge_pool.md
+judge_worksheet.md
 
 # ---- Secrets and local configuration ---------------------------------------
 # Keep .env.example committed with placeholder values only.

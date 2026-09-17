@@ -30,7 +30,18 @@ Three further **unanswerable** questions are biomedical but outside the corpus. 
 
 Judgments are made by the author, at paper level, on a binary scale: a paper is relevant if its title or abstract directly addresses the question. Passage-level judgments were considered and rejected; with one or two passages per paper they would double the work for almost no extra signal.
 
-Candidates are pooled: `bio-copilot judge` runs the lexical retriever for each unjudged question and prints the top candidates with title and abstract snippet. The judge reads them and records the relevant PMIDs in `questions.json`. Pooling is the standard shortcut from information-retrieval evaluation and has a known bias: papers no retriever surfaces are never judged. When a second retriever is added its pool is judged too, and the union is used.
+Judging is **exhaustive**, not pooled. The corpus is 60 papers, and each question belongs to a topic of exactly 20, so every question can be judged against every paper that could plausibly answer it. `bio-copilot judge` prints one worksheet per topic: the topic's questions, then all 20 papers with title and abstract, each carrying a marker showing which questions currently list it.
+
+```text
+  marker slots, in order: q01 q02 q03
+
+[.X.] 40119516  Recent advances in therapeutic gene-editing technologies.
+      Gene editing has great therapeutic impact...
+```
+
+This matters because pooled judgments make recall circular. Round one used `--scope pool`, which showed only the lexical retriever's own top ten, so every judged paper was one that retriever had already found and recall@10 came out at exactly 1.000 by construction. `--scope pool` still exists for corpora too large to judge exhaustively, and it is the standard approach at scale, but it is not used here.
+
+Cross-topic relevance is assumed absent: a question about tau kinases is judged against the Alzheimer's papers only. The topics were chosen to be disjoint, and the assumption is recorded here so a reader can challenge it.
 
 An answerable question with an empty `relevant` list is **unjudged**, not "nothing relevant". The evaluation lists such questions and excludes them from every mean.
 
@@ -96,7 +107,6 @@ The fix is to judge the full 20-paper topic for each question rather than a retr
 ## Known limitations
 
 - 12 questions is enough to catch gross regressions and to support an error analysis, not to claim statistically significant differences between retrievers.
-- Round one judgments were pooled from a single retriever at the same depth as the evaluation cut-off, which makes recall degenerate. See the note under Results.
 - Single judge, so no inter-annotator agreement.
-- Pooling bias as described above.
+- Judging is exhaustive within a topic but assumes no cross-topic relevance.
 - Titles and abstracts only; full-text relevance is out of scope.

@@ -32,7 +32,12 @@ from bio_research_copilot.application import (
 from bio_research_copilot.application.evaluate import collapse_to_papers
 from bio_research_copilot.config import Settings
 from bio_research_copilot.domain import Paper, RetrievedEvidence, SearchQuery, Source
-from bio_research_copilot.evaluation import load_benchmark
+from bio_research_copilot.evaluation import (
+    Benchmark,
+    CorpusManifest,
+    load_benchmark,
+    load_manifest,
+)
 from bio_research_copilot.retrieval import BM25Index
 
 DISCLAIMER = "For research and educational use only. Not medical advice."
@@ -130,11 +135,16 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
 
-    judge = subparsers.add_parser(
-        "judge", help="Print pooled candidate papers for unjudged benchmark questions."
-    )
+    judge = subparsers.add_parser("judge", help="Print candidate papers to judge for relevance.")
     judge.add_argument("benchmark", type=Path, help="Benchmark directory or questions.json.")
-    judge.add_argument("--pool", type=int, default=10, help="Candidates per question.")
+    judge.add_argument(
+        "--scope",
+        choices=("topic", "pool"),
+        default="topic",
+        help="topic: every corpus paper grouped by topic, exhaustive (default). "
+        "pool: only the retriever's top candidates for unjudged questions.",
+    )
+    judge.add_argument("--pool", type=int, default=10, help="Candidates per question, pool scope.")
     judge.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
@@ -249,29 +259,88 @@ def _cmd_load_corpus(args: argparse.Namespace, runtime: Runtime) -> int:
     return EXIT_OK
 
 
+def _snippet(text: str | None, limit: int) -> str:
+    flat = (text or "").replace("\n", " ").strip()
+    return flat if len(flat) <= limit else flat[: limit - 3] + "..."
+
+
+def render_pool_worksheet(benchmark: Benchmark, repository: PaperRepository, pool: int) -> str:
+    """Top candidates per unjudged question, as ranked by the lexical retriever.
+
+    Cheap, but it only ever shows what this retriever already finds, so recall
+    measured against these judgments is biased upward. Prefer the topic scope
+    when the corpus is small enough to judge exhaustively.
+    """
+    index = BM25Index(repository.all_passages())
+    lines: list[str] = []
+    for q in benchmark.questions:
+        if q.judged:
+            continue
+        lines.append(f"## {q.id} [{q.type}] {q.question}")
+        evidence = index.search(SearchQuery(raw=q.question, max_results=100))
+        for pid in collapse_to_papers(evidence, pool):
+            paper = repository.get_paper(Source.PUBMED, pid)
+            if paper is None:
+                continue
+            lines.append(f"- {pid}  {paper.title}")
+            lines.append(f"    {_snippet(paper.abstract, 240)}")
+        lines.append("")
+    return "\n".join(lines).rstrip() if lines else "All questions are judged."
+
+
+def render_topic_worksheet(
+    benchmark: Benchmark, manifest: CorpusManifest, repository: PaperRepository
+) -> str:
+    """Every corpus paper grouped by topic, with its current judgments marked.
+
+    Exhaustive judging: each topic's papers are read once and judged against all
+    of that topic's questions, so recall is exact rather than pooled. The marker
+    shows the current state, one slot per question in the order listed above it.
+    """
+    lines: list[str] = []
+    for topic, snapshot in manifest.topics.items():
+        questions = [q for q in benchmark.questions if q.topic == topic]
+        if not questions:
+            continue
+        slots = " ".join(q.id for q in questions)
+        lines.append(f"# {topic}  ({len(snapshot.pmids)} papers)")
+        lines.append(f"  query: {snapshot.query}")
+        for q in questions:
+            lines.append(f"  {q.id} [{q.type}] {q.question}")
+        lines.append(f"  marker slots, in order: {slots}")
+        lines.append("")
+        for pmid in snapshot.pmids:
+            paper = repository.get_paper(Source.PUBMED, pmid)
+            if paper is None:
+                lines.append(f"[???] {pmid}  NOT IN STORE")
+                continue
+            marker = "".join("X" if pmid in q.relevant else "." for q in questions)
+            lines.append(f"[{marker}] {pmid}  {paper.title}")
+            lines.append(f"      {_snippet(paper.abstract, 320)}")
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
 def _cmd_judge(args: argparse.Namespace, runtime: Runtime) -> int:
     if not args.benchmark.exists():
         print(f"error: cannot read {args.benchmark}: not found", file=sys.stderr)
         return EXIT_BAD_INPUT
     benchmark = load_benchmark(args.benchmark)
+    manifest = None
+    if args.scope == "topic":
+        manifest_dir = args.benchmark if args.benchmark.is_dir() else args.benchmark.parent
+        if not (manifest_dir / "manifest.json").exists():
+            print(
+                f"error: cannot read {manifest_dir / 'manifest.json'}: not found", file=sys.stderr
+            )
+            return EXIT_BAD_INPUT
+        manifest = load_manifest(manifest_dir)
     with runtime.open_repository(args.db) as repository:
-        index = BM25Index(repository.all_passages())
-        lines: list[str] = []
-        for q in benchmark.questions:
-            if q.judged:
-                continue
-            lines.append(f"## {q.id} [{q.type}] {q.question}")
-            evidence = index.search(SearchQuery(raw=q.question, max_results=100))
-            for pid in collapse_to_papers(evidence, args.pool):
-                paper = repository.get_paper(Source.PUBMED, pid)
-                if paper is None:
-                    continue
-                abstract = (paper.abstract or "").replace("\n", " ")
-                snippet = abstract if len(abstract) <= 240 else abstract[:237] + "..."
-                lines.append(f"- {pid}  {paper.title}")
-                lines.append(f"    {snippet}")
-            lines.append("")
-    print("\n".join(lines) if lines else "All questions are judged.")
+        if manifest is not None:
+            text = render_topic_worksheet(benchmark, manifest, repository)
+        else:
+            text = render_pool_worksheet(benchmark, repository, args.pool)
+    print(text)
     return EXIT_OK
 
 

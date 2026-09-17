@@ -51,7 +51,35 @@ class Benchmark(BaseModel):
         return self
 
 
+class TopicSnapshot(BaseModel):
+    """One topic's slice of the frozen corpus."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    query: str = Field(min_length=1, description="The PubMed query that produced these papers.")
+    pmids: list[str] = Field(min_length=1)
+
+
+class CorpusManifest(BaseModel):
+    """What the committed corpus contains and where it came from."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    version: str = Field(min_length=1)
+    snapshot_at: str = ""
+    topics: dict[str, TopicSnapshot]
+
+    def paper_ids(self) -> set[str]:
+        return {pmid for topic in self.topics.values() for pmid in topic.pmids}
+
+
 def load_benchmark(path: Path) -> Benchmark:
     """Read ``questions.json`` from a benchmark directory or a direct file path."""
     file = path / "questions.json" if path.is_dir() else path
     return Benchmark.model_validate(json.loads(file.read_text(encoding="utf-8")))
+
+
+def load_manifest(path: Path) -> CorpusManifest:
+    """Read ``manifest.json`` from a benchmark directory or a direct file path."""
+    file = path / "manifest.json" if path.is_dir() else path
+    return CorpusManifest.model_validate(json.loads(file.read_text(encoding="utf-8")))

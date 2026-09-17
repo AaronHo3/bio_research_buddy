@@ -350,7 +350,8 @@ def test_judge_lists_only_unjudged_questions(
     run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
     capsys.readouterr()
 
-    assert run(["judge", str(bench), "--pool", "3", "--db", str(db)], rt) == EXIT_OK
+    argv = ["judge", str(bench), "--scope", "pool", "--pool", "3", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
     out = capsys.readouterr().out
     assert "## open [mechanism]" in out
     assert "## done" not in out  # already judged
@@ -368,8 +369,43 @@ def test_judge_says_so_when_everything_is_judged(
     rt = runtime(StubSource())
     run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
     capsys.readouterr()
-    assert run(["judge", str(bench), "--db", str(db)], rt) == EXIT_OK
+    assert run(["judge", str(bench), "--scope", "pool", "--db", str(db)], rt) == EXIT_OK
     assert capsys.readouterr().out == "All questions are judged.\n"
+
+
+def test_judge_topic_scope_lists_every_corpus_paper_with_markers(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource())
+    run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert run(["judge", str(BENCHMARK_DIR), "--db", str(db)], rt) == EXIT_OK  # topic is default
+    out = capsys.readouterr().out
+
+    manifest = json.loads((BENCHMARK_DIR / "manifest.json").read_text(encoding="utf-8"))
+    for topic, info in manifest["topics"].items():
+        assert f"# {topic}" in out
+        for pmid in info["pmids"]:
+            assert pmid in out, f"{pmid} missing from the topic worksheet"
+    assert "marker slots, in order: q01 q02 q03" in out
+    # Judged papers carry an X in the slot of the question that lists them.
+    benchmark = json.loads((BENCHMARK_DIR / "questions.json").read_text(encoding="utf-8"))
+    q01 = next(q for q in benchmark["questions"] if q["id"] == "q01")
+    for pmid in q01["relevant"]:
+        assert "[X" in out and pmid in out
+
+
+def test_judge_topic_scope_without_a_manifest_is_exit_2(
+    db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    bench = write_benchmark(
+        tmp_path / "questions.json",
+        [{"id": "a", "topic": "t", "type": "mechanism", "question": "CRISPR"}],
+    )
+    code = run(["judge", str(bench), "--db", str(db)], runtime(StubSource()))
+    assert code == EXIT_BAD_INPUT
+    assert "manifest.json" in capsys.readouterr().err
 
 
 def test_evaluate_prints_summary_and_writes_report(

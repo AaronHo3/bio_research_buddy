@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from bio_research_copilot.evaluation import Benchmark, load_benchmark
+from bio_research_copilot.evaluation import Benchmark, load_benchmark, load_manifest
 
 BENCHMARK_DIR = Path(__file__).parent.parent.parent / "evaluation" / "benchmark_v1"
 
@@ -42,6 +42,20 @@ def test_judged_relevant_ids_must_exist_in_the_corpus() -> None:
 
 def test_load_accepts_a_direct_file_path() -> None:
     assert load_benchmark(BENCHMARK_DIR / "questions.json").version == "benchmark_v1"
+
+
+def test_manifest_loads_and_matches_the_questions() -> None:
+    manifest = load_manifest(BENCHMARK_DIR)
+    assert manifest.version == "benchmark_v1"
+    assert len(manifest.topics) == 3
+    assert all(len(t.pmids) == 20 for t in manifest.topics.values())
+    assert len(manifest.paper_ids()) == 60
+    topics = {q.topic for q in load_benchmark(BENCHMARK_DIR).questions if q.topic != "none"}
+    assert topics == set(manifest.topics)
+
+
+def test_manifest_accepts_a_direct_file_path() -> None:
+    assert load_manifest(BENCHMARK_DIR / "manifest.json").version == "benchmark_v1"
 
 
 def test_unanswerable_with_relevant_is_rejected() -> None:
