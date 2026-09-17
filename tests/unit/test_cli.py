@@ -254,6 +254,47 @@ def test_passages_unknown_id_is_exit_3(db: Path, capsys: pytest.CaptureFixture[s
     assert capsys.readouterr().err == "error: no stored passages for pubmed paper 0\n"
 
 
+# -- query ---------------------------------------------------------------------
+
+
+def test_query_ranks_stored_passages(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS))
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    code = run(["query", "double nicking off-target cleavage", "--k", "2", "--db", str(db)], rt)
+    assert code == EXIT_OK
+    evidence = json.loads(capsys.readouterr().out)
+    assert len(evidence) == 2
+    assert evidence[0]["rank"] == 1
+    assert evidence[0]["method"] == "bm25-v1"
+    assert evidence[0]["passage"]["source_id"] == "24157548"
+    assert evidence[0]["score"] >= evidence[1]["score"]
+
+
+def test_query_table_format(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS))
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+    run(["query", "CRISPR", "--k", "1", "--format", "table", "--db", str(db)], rt)
+    out = capsys.readouterr().out
+    assert out.startswith("1. pubmed:")
+    assert "score=" in out
+
+
+def test_query_with_no_match_prints_empty_list(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    code = run(["query", "zebrafish", "--db", str(db)], runtime(StubSource()))
+    assert code == EXIT_OK
+    assert capsys.readouterr().out == "[]\n"
+
+
+def test_query_blank_question_is_exit_2(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run(["query", "  ", "--db", str(db)], runtime(StubSource())) == EXIT_BAD_INPUT
+    assert capsys.readouterr().err.startswith("error: invalid input:")
+
+
 def test_show_unopenable_db_is_exit_1(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     blocker = tmp_path / "file"
     blocker.write_text("x")

@@ -21,9 +21,9 @@ from bio_research_copilot.adapters.literature import LiteratureSource, Literatur
 from bio_research_copilot.adapters.persistence import PaperRepository, PersistenceError
 from bio_research_copilot.adapters.pubmed import PubMedClient
 from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
-from bio_research_copilot.application import ingest_papers, search_papers
+from bio_research_copilot.application import ingest_papers, query_passages, search_papers
 from bio_research_copilot.config import Settings
-from bio_research_copilot.domain import Paper, Source
+from bio_research_copilot.domain import Paper, RetrievedEvidence, Source
 
 DISCLAIMER = "For research and educational use only. Not medical advice."
 
@@ -96,6 +96,21 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     passages.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
+
+    query = subparsers.add_parser(
+        "query", help="Rank stored passages for a question (lexical BM25, no network)."
+    )
+    query.add_argument("question", help="The research question, in plain language.")
+    query.add_argument("--k", type=int, default=5, help="Number of passages (default: 5).")
+    query.add_argument(
+        "--format",
+        choices=("json", "table"),
+        default="json",
+        help="Output format (default: json).",
+    )
+    query.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
     return parser
 
 
@@ -154,11 +169,36 @@ def _cmd_passages(args: argparse.Namespace, runtime: Runtime) -> int:
     return EXIT_OK
 
 
+def render_evidence_table(evidence: list[RetrievedEvidence]) -> str:
+    if not evidence:
+        return "No matching passages."
+    lines: list[str] = []
+    for item in evidence:
+        p = item.passage
+        snippet = p.text if len(p.text) <= 120 else p.text[:117] + "..."
+        lines.append(f"{item.rank}. {p.chunk_id}  score={item.score:.3f}  [{p.section}]")
+        lines.append(f"   {snippet}")
+    return "\n".join(lines)
+
+
+def _cmd_query(args: argparse.Namespace, runtime: Runtime) -> int:
+    with runtime.open_repository(args.db) as repository:
+        evidence = query_passages(repository, args.question, args.k)
+    if args.format == "table":
+        print(render_evidence_table(evidence))
+    else:
+        print(
+            json.dumps([e.model_dump(mode="json") for e in evidence], indent=2, ensure_ascii=False)
+        )
+    return EXIT_OK
+
+
 _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "search": _cmd_search,
     "ingest": _cmd_ingest,
     "show": _cmd_show,
     "passages": _cmd_passages,
+    "query": _cmd_query,
 }
 
 

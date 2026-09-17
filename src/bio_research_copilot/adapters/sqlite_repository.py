@@ -99,6 +99,11 @@ SELECT source, source_id, title, abstract, authors, journal, pub_year, pub_month
 FROM papers WHERE source = ? AND source_id = ?
 """
 
+_SELECT_PASSAGE = (
+    "SELECT chunk_id, source, source_id, position, section, text, content_hash, strategy"
+    " FROM passages"
+)
+
 
 class SqliteRepository:
     """A :class:`PaperRepository` backed by one SQLite file (or ``:memory:``)."""
@@ -260,23 +265,14 @@ class SqliteRepository:
 
     def get_passages(self, source: Source, source_id: str) -> list[Passage]:
         rows = self._conn.execute(
-            "SELECT chunk_id, source, source_id, position, section, text, content_hash, strategy"
-            " FROM passages WHERE source = ? AND source_id = ? ORDER BY position",
+            f"{_SELECT_PASSAGE} WHERE source = ? AND source_id = ? ORDER BY position",
             (source.value, source_id),
         ).fetchall()
-        return [
-            Passage(
-                source=Source(r["source"]),
-                source_id=r["source_id"],
-                chunk_id=r["chunk_id"],
-                position=r["position"],
-                section=r["section"],
-                text=r["text"],
-                content_hash=r["content_hash"],
-                strategy=r["strategy"],
-            )
-            for r in rows
-        ]
+        return [_row_to_passage(r) for r in rows]
+
+    def all_passages(self) -> list[Passage]:
+        rows = self._conn.execute(f"{_SELECT_PASSAGE} ORDER BY chunk_id").fetchall()
+        return [_row_to_passage(r) for r in rows]
 
     def count_passages(self) -> int:
         count: int = self._conn.execute("SELECT COUNT(*) FROM passages").fetchone()[0]
@@ -288,6 +284,19 @@ def _stamp(moment: datetime) -> str:
         msg = "timestamps must be timezone-aware"
         raise ValueError(msg)
     return moment.isoformat()
+
+
+def _row_to_passage(row: sqlite3.Row) -> Passage:
+    return Passage(
+        source=Source(row["source"]),
+        source_id=row["source_id"],
+        chunk_id=row["chunk_id"],
+        position=row["position"],
+        section=row["section"],
+        text=row["text"],
+        content_hash=row["content_hash"],
+        strategy=row["strategy"],
+    )
 
 
 def _row_to_paper(row: sqlite3.Row) -> Paper:

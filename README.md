@@ -43,9 +43,10 @@ Store results locally and inspect them later:
 uv run bio-copilot ingest "CRISPR base editing off-target" --limit 3   # prints a manifest
 uv run bio-copilot show 24157548                                        # one stored paper
 uv run bio-copilot passages 24157548                                    # its citable passages
+uv run bio-copilot query "double nicking off-target" --k 3 --format table  # rank stored passages
 ```
 
-Ingesting is idempotent: re-running a question refreshes existing papers instead of duplicating them, and each run is recorded with the ranked IDs it returned. Each paper is also split into passages (title, then one per abstract section) with stable chunk IDs, which are the units later retrieval and citation will point at. The database is a single SQLite file at `data/bio_copilot.sqlite` (git-ignored), configurable with `DATABASE_PATH` or `--db`.
+Ingesting is idempotent: re-running a question refreshes existing papers instead of duplicating them, and each run is recorded with the ranked IDs it returned. Each paper is also split into passages (title, then one per abstract section) with stable chunk IDs. The `query` command ranks those stored passages with a hand-written BM25 implementation, no network needed. That is the lexical baseline every later retrieval method has to beat. The database is a single SQLite file at `data/bio_copilot.sqlite` (git-ignored), configurable with `DATABASE_PATH` or `--db`.
 
 Exit codes: 1 the literature source or database failed, 2 the input was invalid, 3 the requested record is not stored.
 
@@ -53,7 +54,7 @@ For research and educational use only. Not medical advice.
 
 ## Current milestone
 
-Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Next is the lexical retrieval baseline and a versioned evaluation set (Stage 3).
+Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 is in progress: the BM25 lexical baseline over stored passages is done; next is a versioned evaluation set and a reproducible metrics report.
 
 See `PROJECT_SPEC.md` for scope. This README should evolve into the public recruiter/user-facing document as verified features and results exist.
 

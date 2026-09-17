@@ -11,15 +11,20 @@ bio-copilot search "<question>" --limit N --format json|table
 bio-copilot ingest "<question>" --limit N [--db PATH]
 bio-copilot show <source_id> [--source pubmed] [--db PATH]
 bio-copilot passages <source_id> [--source pubmed] [--db PATH]
+bio-copilot query "<question>" --k N [--format json|table] [--db PATH]
   -> cli.py                     composition root: Settings -> httpx.Client, PubMedClient, SqliteRepository
   -> application/search.py      search_papers(source, question, max_results)
   -> application/ingest.py      ingest_papers(source, repository, ...) -> upsert, chunk, record -> IngestReport
+  -> application/query.py       query_passages(repository, question, k) -> ranked RetrievedEvidence
+  -> retrieval/base.py          Retriever protocol
+  -> retrieval/tokenize.py      lower-case, alphanumeric split, stopwords, no stemming
+  -> retrieval/bm25.py          BM25Index ("bm25-v1"): in-memory index built from stored passages
   -> adapters/literature.py     LiteratureSource protocol + typed error hierarchy
   -> adapters/pubmed.py         esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
   -> adapters/resilience.py     RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
   -> adapters/persistence.py    PaperRepository protocol, UpsertResult, RetrievalRecord
   -> adapters/sqlite_repository.py  stdlib sqlite3; tables papers, retrievals, retrieval_papers, passages
-  -> domain/models.py           Paper, PublicationDate, Passage, SearchQuery (frozen Pydantic models)
+  -> domain/models.py           Paper, PublicationDate, Passage, SearchQuery, RetrievedEvidence
   -> domain/chunking.py         Chunker protocol; SectionChunker ("section-v1"): title + one passage per abstract section
   -> stdout (JSON or table); errors to stderr; exit 1 dependency failed, 2 bad input, 3 not found
 ```
@@ -28,13 +33,15 @@ Persistence: papers are keyed on `(source, source_id)` and upserted idempotently
 
 Passages: each ingested paper is split by the named chunking strategy and its passages replace any stored earlier, so a shrunken abstract leaves no stale chunks. `chunk_id` is `source:source_id:position`, stable across runs; `content_hash` (SHA-256 of the text) changes when the text does, which later lets embeddings detect staleness. The strategy name is stored on every row.
 
+Local retrieval: `query` tokenizes the question, builds a BM25 index over every stored passage, and returns ranked `RetrievedEvidence` carrying the passage, rank, score, per-method component scores, and the retriever name. The index is rebuilt per query, which is milliseconds at this corpus size and guarantees it never drifts from the store. Ties break on `chunk_id`, so output is deterministic for a given store.
+
 Observed in live use: PubMed's relevance sort is not stable across identical calls made seconds apart. Two consecutive ingests of the same question returned overlapping but different top-3 sets. Determinism holds for a given response, not for the live service; the evaluation set in Stage 3 must therefore be built from stored records, not re-fetched each run.
 
 Boundary enforcement is tested: `domain/` imports no adapter code and `application/` imports only the port, never the PubMed module or an HTTP library. Unit tests replay recorded NCBI responses through `httpx.MockTransport`; a single `live`-marked test calls NCBI for real and is deselected by default.
 
 Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
 
-Not yet implemented: pagination, retrieval over stored passages, evaluation set, embeddings, synthesis, API, UI.
+Not yet implemented: pagination, evaluation set and metrics report, embeddings, synthesis, API, UI.
 
 ## Initial vertical slice
 
@@ -99,6 +106,13 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - Choice: `SectionChunker` emits the title as one passage and then one passage per abstract section (the whole abstract when unlabelled). Deterministic positional ids, content hashes, and the strategy name are stored with each passage.
 - Alternatives: sentence windows with overlap (finer citation targets, but a sentence splitter, near-duplicate chunks, and more rows for the same content); fixed character windows (fully general, but cuts mid-sentence and cites half-thoughts).
 - Consequence: no sentence is split from its neighbours, and the evaluation in Stage 3 judges whole sections. If full text ever arrives, a windowed strategy is added as `window-v1` and both can coexist in the data because every passage names its strategy.
+
+### ADR-007: Hand-written BM25 as the lexical baseline
+
+- Context: Stage 3 needs a keyword baseline to measure semantic retrieval against. SQLite's FTS5 extension is available and would provide BM25 with an inverted index.
+- Choice: implement BM25 directly (about sixty lines) over an in-memory index built from stored passages, with a deliberately simple tokenizer and no stemming.
+- Alternatives: FTS5 (production-grade, scales, but a black box for evaluation writeups); a third-party BM25 package (a dependency for a formula that fits on one screen).
+- Consequence: every term of the formula is testable and explainable, and the evaluation can attribute failures to tokenization, idf, or length normalisation. Scaling beyond tens of thousands of passages would justify FTS5 as a second `Retriever` implementation.
 
 ## Open decisions
 

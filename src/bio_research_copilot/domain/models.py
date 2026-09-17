@@ -89,3 +89,17 @@ class SearchQuery(BaseModel):
 
     raw: str = Field(min_length=1, description="The question exactly as the user typed it.")
     max_results: int = Field(default=10, ge=1, le=100)
+
+
+class RetrievedEvidence(BaseModel):
+    """One passage returned for a query, with how and how strongly it matched."""
+
+    model_config = _STRICT
+
+    passage: Passage
+    rank: int = Field(ge=1)
+    score: float = Field(description="The score used for ranking.")
+    components: dict[str, float] = Field(
+        default_factory=dict, description='Per-method scores, e.g. {"bm25": 3.1}.'
+    )
+    method: str = Field(min_length=1, description="Retriever name and version.")

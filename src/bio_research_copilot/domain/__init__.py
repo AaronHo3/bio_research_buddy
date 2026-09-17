@@ -5,6 +5,7 @@ from bio_research_copilot.domain.models import (
     Paper,
     Passage,
     PublicationDate,
+    RetrievedEvidence,
     SearchQuery,
     Source,
 )
@@ -14,6 +15,7 @@ __all__ = [
     "Paper",
     "Passage",
     "PublicationDate",
+    "RetrievedEvidence",
     "SearchQuery",
     "SectionChunker",
     "Source",
