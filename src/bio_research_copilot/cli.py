@@ -1,32 +1,48 @@
 """Command-line entry point.
 
 This is the composition root: the one place that reads settings, builds real
-adapters, and wires them into the application service. ``run`` accepts the
-source as a parameter so tests can drive the full CLI with a fake provider.
+adapters, and wires them into the application services. ``run`` receives a
+``Runtime`` bundle so tests can drive the full CLI with a fake source and a
+throwaway database.
 """
 
 import argparse
 import json
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
 from pydantic import ValidationError
 
 from bio_research_copilot.adapters.literature import LiteratureSource, LiteratureSourceError
+from bio_research_copilot.adapters.persistence import PaperRepository, PersistenceError
 from bio_research_copilot.adapters.pubmed import PubMedClient
-from bio_research_copilot.application import search_papers
+from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
+from bio_research_copilot.application import ingest_papers, search_papers
 from bio_research_copilot.config import Settings
-from bio_research_copilot.domain import Paper
+from bio_research_copilot.domain import Paper, Source
 
 DISCLAIMER = "For research and educational use only. Not medical advice."
 
 EXIT_OK = 0
-EXIT_SOURCE_FAILED = 1
+EXIT_DEPENDENCY_FAILED = 1  # literature source or database failed
 EXIT_BAD_INPUT = 2
+EXIT_NOT_FOUND = 3
 
 
-def build_parser() -> argparse.ArgumentParser:
+@dataclass(frozen=True)
+class Runtime:
+    """Everything the commands need from the outside world."""
+
+    source: LiteratureSource
+    open_repository: Callable[[Path], AbstractContextManager[PaperRepository]]
+    default_db: Path
+
+
+def build_parser(default_db: Path) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="bio-copilot",
         description="Evidence-grounded biomedical literature assistant.",
@@ -44,6 +60,29 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("json", "table"),
         default="json",
         help="Output format (default: json).",
+    )
+
+    ingest = subparsers.add_parser(
+        "ingest", help="Search, store the papers locally, and record the run."
+    )
+    ingest.add_argument("question", help="The research question, in plain language.")
+    ingest.add_argument(
+        "--limit", type=int, default=5, help="Maximum number of papers (default: 5)."
+    )
+    ingest.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
+
+    show = subparsers.add_parser("show", help="Print one stored paper.")
+    show.add_argument("source_id", help="The paper's identifier within its source, e.g. a PMID.")
+    show.add_argument(
+        "--source",
+        choices=[s.value for s in Source],
+        default=Source.PUBMED.value,
+        help="Literature source (default: pubmed).",
+    )
+    show.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
     return parser
 
@@ -68,22 +107,48 @@ def render_table(papers: list[Paper]) -> str:
     return "\n".join(lines)
 
 
-def run(argv: Sequence[str], source: LiteratureSource) -> int:
-    """Execute the CLI against a given literature source. Returns the exit code."""
-    args = build_parser().parse_args(argv)
+def _cmd_search(args: argparse.Namespace, runtime: Runtime) -> int:
+    papers = search_papers(runtime.source, args.question, args.limit)
+    print(render_json(papers) if args.format == "json" else render_table(papers))
+    return EXIT_OK
+
+
+def _cmd_ingest(args: argparse.Namespace, runtime: Runtime) -> int:
+    with runtime.open_repository(args.db) as repository:
+        report = ingest_papers(runtime.source, repository, args.question, args.limit)
+    print(json.dumps(report.model_dump(mode="json"), indent=2, ensure_ascii=False))
+    return EXIT_OK
+
+
+def _cmd_show(args: argparse.Namespace, runtime: Runtime) -> int:
+    with runtime.open_repository(args.db) as repository:
+        paper = repository.get_paper(Source(args.source), args.source_id)
+    if paper is None:
+        print(f"error: no stored {args.source} paper with id {args.source_id}", file=sys.stderr)
+        return EXIT_NOT_FOUND
+    print(json.dumps(paper.model_dump(mode="json"), indent=2, ensure_ascii=False))
+    return EXIT_OK
+
+
+_COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
+    "search": _cmd_search,
+    "ingest": _cmd_ingest,
+    "show": _cmd_show,
+}
+
+
+def run(argv: Sequence[str], runtime: Runtime) -> int:
+    """Execute the CLI against the given runtime. Returns the exit code."""
+    args = build_parser(runtime.default_db).parse_args(argv)
     try:
-        papers = search_papers(source, args.question, args.limit)
+        return _COMMANDS[args.command](args, runtime)
     except ValidationError as exc:
         reasons = "; ".join(str(err["msg"]) for err in exc.errors())
         print(f"error: invalid input: {reasons}", file=sys.stderr)
         return EXIT_BAD_INPUT
-    except LiteratureSourceError as exc:
+    except (LiteratureSourceError, PersistenceError) as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_SOURCE_FAILED
-
-    output = render_json(papers) if args.format == "json" else render_table(papers)
-    print(output)
-    return EXIT_OK
+        return EXIT_DEPENDENCY_FAILED
 
 
 def ensure_utf8_output() -> None:
@@ -103,13 +168,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     ensure_utf8_output()
     settings = Settings()
     with httpx.Client(timeout=settings.http_timeout_seconds) as http:
-        source = PubMedClient(
-            http,
-            tool=settings.ncbi_tool_name,
-            email=settings.ncbi_contact_email,
-            api_key=settings.ncbi_api_key,
+        runtime = Runtime(
+            source=PubMedClient(
+                http,
+                tool=settings.ncbi_tool_name,
+                email=settings.ncbi_contact_email,
+                api_key=settings.ncbi_api_key,
+            ),
+            open_repository=SqliteRepository.open,
+            default_db=settings.database_path,
         )
-        return run(sys.argv[1:] if argv is None else argv, source)
+        return run(sys.argv[1:] if argv is None else argv, runtime)
 
 
 if __name__ == "__main__":

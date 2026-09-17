@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/AaronHo3/bio_research_buddy/actions/workflows/ci.yml/badge.svg)](https://github.com/AaronHo3/bio_research_buddy/actions/workflows/ci.yml)
 
-Status: Stage 1 complete. A tested command-line tool retrieves PubMed records and normalizes them into typed domain objects. No embeddings, language model, database, or web interface exist yet.
+Status: Stage 2 complete. A tested command-line tool retrieves PubMed records, normalizes them into typed domain objects, and stores them in SQLite with provenance. No embeddings, language model, or web interface exist yet.
 
 An evidence-grounded research assistant for biomedical literature. The application will retrieve relevant papers, synthesize a concise answer, and connect claims to inspectable evidence.
 
@@ -35,13 +35,24 @@ uv run bio-copilot search "CRISPR base editing off-target" --limit 3 --format ta
    https://pubmed.ncbi.nlm.nih.gov/25315507/
 ```
 
-The default `--format json` prints the full normalized records, including abstracts, in a stable field order. Exit code 1 means the literature source failed; exit code 2 means the input was invalid.
+The default `--format json` prints the full normalized records, including abstracts, in a stable field order.
+
+Store results locally and inspect them later:
+
+```bash
+uv run bio-copilot ingest "CRISPR base editing off-target" --limit 3   # prints a manifest
+uv run bio-copilot show 24157548                                        # one stored paper
+```
+
+Ingesting is idempotent: re-running a question refreshes existing papers instead of duplicating them, and each run is recorded with the ranked IDs it returned. The database is a single SQLite file at `data/bio_copilot.sqlite` (git-ignored), configurable with `DATABASE_PATH` or `--db`.
+
+Exit codes: 1 the literature source or database failed, 2 the input was invalid, 3 the requested record is not stored.
 
 For research and educational use only. Not medical advice.
 
 ## Current milestone
 
-Stage 1 of the plan in `PROJECT_SPEC.md` is done: a typed PubMed adapter behind a provider-neutral interface, fixture-based offline tests, one marked live test, and a deterministic CLI. The adapter paces requests to NCBI's published limit and retries transient failures with exponential backoff. Next is persistence (Stage 2).
+Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance, fixture-based offline tests, one marked live test, and a CLI. Next is passage creation with stable chunk IDs, then the retrieval baseline and evaluation set (Stage 3).
 
 See `PROJECT_SPEC.md` for scope. This README should evolve into the public recruiter/user-facing document as verified features and results exist.
 

@@ -5,6 +5,8 @@ Only the composition root (the CLI today, the API later) should construct
 the pipeline depends on how configuration is loaded.
 """
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,3 +18,4 @@ class Settings(BaseSettings):
     ncbi_contact_email: str | None = None
     ncbi_api_key: str | None = None
     http_timeout_seconds: float = Field(default=30.0, gt=0)
+    database_path: Path = Path("data/bio_copilot.sqlite")
