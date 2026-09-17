@@ -41,7 +41,7 @@ For research and educational use only. Not medical advice.
 
 ## Current milestone
 
-Stage 1 of the plan in `PROJECT_SPEC.md` is done: a typed PubMed adapter behind a provider-neutral interface, fixture-based offline tests, one marked live test, and a deterministic CLI. Next is retry, backoff, and rate-limit awareness in the adapter, followed by persistence (Stage 2).
+Stage 1 of the plan in `PROJECT_SPEC.md` is done: a typed PubMed adapter behind a provider-neutral interface, fixture-based offline tests, one marked live test, and a deterministic CLI. The adapter paces requests to NCBI's published limit and retries transient failures with exponential backoff. Next is persistence (Stage 2).
 
 See `PROJECT_SPEC.md` for scope. This README should evolve into the public recruiter/user-facing document as verified features and results exist.
 

@@ -10,11 +10,14 @@ schema. It exposes only domain objects and the errors declared in
 :mod:`bio_research_copilot.adapters.literature`.
 
 Usage policy: NCBI asks clients to identify themselves with ``tool`` and
-``email`` and limits unkeyed clients to 3 requests per second. Retry, backoff,
-and rate limiting are deliberately not implemented yet; see the project spec.
+``email`` and limits clients to 3 requests per second, or 10 with an API key.
+The client paces itself to that limit and retries transient failures
+(timeouts, connection errors, HTTP 429 and 5xx) with exponential backoff.
 """
 
+import time
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from typing import Any
 
 import httpx
@@ -23,10 +26,14 @@ from bio_research_copilot.adapters.literature import (
     LiteratureSourceParseError,
     LiteratureSourceUnavailableError,
 )
+from bio_research_copilot.adapters.resilience import MinIntervalLimiter, RetryPolicy
 from bio_research_copilot.domain import Paper, PublicationDate, SearchQuery, Source
 
 EUTILS_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 PUBMED_ARTICLE_URL = "https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+REQUESTS_PER_SECOND_WITHOUT_KEY = 3.0
+REQUESTS_PER_SECOND_WITH_KEY = 10.0
+_RETRYABLE_STATUS = frozenset({429}) | frozenset(range(500, 600))
 
 _MONTHS = {
     "jan": 1,
@@ -53,6 +60,10 @@ class PubMedClient:
         tool: Client name sent to NCBI, per their usage policy.
         email: Contact address sent to NCBI. Optional but requested by NCBI.
         api_key: NCBI API key. Optional; raises the rate limit when present.
+        retry: Backoff schedule for transient failures. Defaults to 3 attempts.
+        requests_per_second: Self-imposed pace. Defaults to NCBI's published
+            limit for keyed or unkeyed clients.
+        clock, sleep: Time functions, injectable so tests never really wait.
     """
 
     def __init__(
@@ -62,6 +73,10 @@ class PubMedClient:
         tool: str,
         email: str | None = None,
         api_key: str | None = None,
+        retry: RetryPolicy | None = None,
+        requests_per_second: float | None = None,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self._http = http
         self._identity: dict[str, str] = {"db": "pubmed", "tool": tool}
@@ -69,6 +84,13 @@ class PubMedClient:
             self._identity["email"] = email
         if api_key:
             self._identity["api_key"] = api_key
+        self._retry = retry or RetryPolicy()
+        self._sleep = sleep
+        if requests_per_second is None:
+            requests_per_second = (
+                REQUESTS_PER_SECOND_WITH_KEY if api_key else REQUESTS_PER_SECOND_WITHOUT_KEY
+            )
+        self._limiter = MinIntervalLimiter(requests_per_second, clock=clock, sleep=sleep)
 
     def search(self, query: SearchQuery) -> list[Paper]:
         pmids = self._esearch(query)
@@ -105,21 +127,46 @@ class PubMedClient:
         return self._get("efetch.fcgi", id=",".join(pmids), retmode="xml").text
 
     def _get(self, endpoint: str, **params: str) -> httpx.Response:
+        """One logical request: paced by the limiter, retried on transient failure."""
+        attempt = 0
+        while True:
+            attempt += 1
+            self._limiter.wait()
+            try:
+                return self._request(endpoint, params)
+            except _TransientError as exc:
+                if attempt >= self._retry.max_attempts:
+                    msg = f"{exc.message} (gave up after {attempt} attempts)"
+                    raise LiteratureSourceUnavailableError(msg) from exc.cause
+                self._sleep(self._retry.delay_before_retry(attempt))
+
+    def _request(self, endpoint: str, params: dict[str, str]) -> httpx.Response:
+        """A single HTTP call. Transient problems raise ``_TransientError``."""
         try:
             response = self._http.get(
                 f"{EUTILS_BASE_URL}/{endpoint}", params={**self._identity, **params}
             )
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            msg = f"PubMed {endpoint} returned HTTP {exc.response.status_code}"
+            status = exc.response.status_code
+            msg = f"PubMed {endpoint} returned HTTP {status}"
+            if status in _RETRYABLE_STATUS:
+                raise _TransientError(msg, exc) from exc
             raise LiteratureSourceUnavailableError(msg) from exc
         except httpx.TimeoutException as exc:
-            msg = f"PubMed {endpoint} timed out"
-            raise LiteratureSourceUnavailableError(msg) from exc
+            raise _TransientError(f"PubMed {endpoint} timed out", exc) from exc
         except httpx.TransportError as exc:
-            msg = f"PubMed {endpoint} could not be reached: {exc}"
-            raise LiteratureSourceUnavailableError(msg) from exc
+            raise _TransientError(f"PubMed {endpoint} could not be reached: {exc}", exc) from exc
         return response
+
+
+class _TransientError(Exception):
+    """Internal signal: this request failed in a way worth retrying."""
+
+    def __init__(self, message: str, cause: Exception) -> None:
+        super().__init__(message)
+        self.message = message
+        self.cause = cause
 
 
 # -- XML translation ----------------------------------------------------------

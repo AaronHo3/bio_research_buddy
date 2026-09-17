@@ -12,13 +12,16 @@ bio-copilot search "<question>" --limit N --format json|table
   -> application/search.py   search_papers(source, question, max_results)
   -> adapters/literature.py  LiteratureSource protocol + typed error hierarchy
   -> adapters/pubmed.py      esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
+  -> adapters/resilience.py  RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
   -> domain/models.py        Paper, PublicationDate, SearchQuery (frozen Pydantic models)
   -> stdout (deterministic JSON or table); errors to stderr with exit codes 1 (source) / 2 (input)
 ```
 
 Boundary enforcement is tested: `domain/` imports no adapter code and `application/` imports only the port, never the PubMed module or an HTTP library. Unit tests replay recorded NCBI responses through `httpx.MockTransport`; a single `live`-marked test calls NCBI for real and is deselected by default.
 
-Not yet implemented: retry/backoff, rate limiting, pagination, persistence, passages, embeddings, synthesis, API, UI.
+Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
+
+Not yet implemented: pagination, persistence, passages, embeddings, synthesis, API, UI.
 
 ## Initial vertical slice
 
