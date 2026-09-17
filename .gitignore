@@ -1,0 +1,150 @@
+# =============================================================================
+# Bio Research Copilot — .gitignore
+#
+# Rule of thumb: commit everything a reviewer needs to understand, run, and
+# evaluate the project (source, tests, specs, architecture, decisions,
+# evaluation sets and result reports, CI, .env.example). Ignore secrets,
+# private working notes, generated artifacts, and bulk downloaded data.
+# =============================================================================
+
+# ---- Local AI coding-assistant instructions and private working notes -------
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+docs/INTERVIEW_NOTES.md
+docs/PROJECT_LOG.md
+notes/
+scratch/
+*.private.md
+
+# ---- Secrets and local configuration ---------------------------------------
+# Keep .env.example committed with placeholder values only.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+.envrc
+
+# ---- Downloaded papers, corpora, and local vector indexes -------------------
+data/papers/
+data/corpus/
+data/cache/
+data/raw/
+vector_data/
+chroma/
+qdrant_storage/
+*.faiss
+*.index
+*.sqlite
+*.sqlite3
+*.db
+
+# Local database volumes (Docker Compose bind mounts)
+pgdata/
+postgres_data/
+volumes/
+
+# ---- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Tool caches and reports
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ---- Model artifacts and large binaries -------------------------------------
+models/
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.npy
+*.npz
+*.parquet
+*.pkl
+*.pickle
+
+# ---- Frontend (added when a UI exists) --------------------------------------
+node_modules/
+.next/
+.nuxt/
+.svelte-kit/
+frontend/dist/
+frontend/build/
+.turbo/
+.vite/
+*.tsbuildinfo
+
+# ---- Logs, traces, and runtime output ---------------------------------------
+logs/
+*.log
+*.log.*
+tmp/
+temp/
+.tmp/
+run/
+
+# ---- Editors and IDEs -------------------------------------------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+.ropeproject
+
+# ---- Operating system -------------------------------------------------------
+.DS_Store
+.AppleDouble
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ---- Deployment and infra state ---------------------------------------------
+.terraform/
+*.tfstate
+*.tfstate.*
+.serverless/
+.vercel/
+.railway/
+.fly/
+docker-compose.override.yml
