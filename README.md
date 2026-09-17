@@ -21,3 +21,27 @@ Build a typed, tested PubMed retrieval client and CLI before introducing embeddi
 
 See `PROJECT_SPEC.md` for scope. This README should evolve into the public recruiter/user-facing document as verified features and results exist.
 
+
+## Development setup
+
+Requires [uv](https://docs.astral.sh/uv/). It installs the pinned Python version and all dependencies from the lockfile.
+
+```bash
+uv sync
+cp .env.example .env   # then fill in values; the file is git-ignored
+```
+
+Run the quality checks that CI enforces:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy
+uv run pytest
+```
+
+Tests marked `live` call real external services and are skipped unless requested explicitly:
+
+```bash
+uv run pytest -m live
+```
