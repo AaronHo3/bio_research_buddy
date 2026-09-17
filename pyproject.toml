@@ -12,6 +12,9 @@ dependencies = [
     "pydantic-settings>=2.3",
 ]
 
+[project.scripts]
+bio-copilot = "bio_research_copilot.cli:main"
+
 [dependency-groups]
 dev = [
     "mypy>=1.10",

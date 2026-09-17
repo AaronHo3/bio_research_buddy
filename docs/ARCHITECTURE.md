@@ -4,7 +4,21 @@ Status: proposed. Update this file as implementation becomes real.
 
 ## Current system
 
-No implementation exists yet.
+Implemented as of Stage 1:
+
+```text
+bio-copilot search "<question>" --limit N --format json|table
+  -> cli.py            composition root: loads Settings, builds httpx.Client and PubMedClient
+  -> application/search.py   search_papers(source, question, max_results)
+  -> adapters/literature.py  LiteratureSource protocol + typed error hierarchy
+  -> adapters/pubmed.py      esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
+  -> domain/models.py        Paper, PublicationDate, SearchQuery (frozen Pydantic models)
+  -> stdout (deterministic JSON or table); errors to stderr with exit codes 1 (source) / 2 (input)
+```
+
+Boundary enforcement is tested: `domain/` imports no adapter code and `application/` imports only the port, never the PubMed module or an HTTP library. Unit tests replay recorded NCBI responses through `httpx.MockTransport`; a single `live`-marked test calls NCBI for real and is deselected by default.
+
+Not yet implemented: retry/backoff, rate limiting, pagination, persistence, passages, embeddings, synthesis, API, UI.
 
 ## Initial vertical slice
 
@@ -42,9 +56,22 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - Choice: build and evaluate paper/evidence retrieval before adding an LLM.
 - Consequence: slower path to a chat-like screenshot, stronger measurement and debuggability.
 
+### ADR-003: Ports and adapters with an injected HTTP client
+
+- Context: every later stage (persistence, evaluation, synthesis) consumes retrieved papers, and PubMed's XML shape must not leak into them. Tests must run offline.
+- Choice: the application layer depends on a `LiteratureSource` protocol; `PubMedClient` implements it and receives an `httpx.Client` from the caller rather than creating one.
+- Alternatives: call PubMed directly from the CLI; patch `httpx` at test time with `monkeypatch`; use a mocking library such as `respx`.
+- Consequence: a fake source or a `MockTransport` replaces the network with no patching. Adding a second literature provider means one new adapter. The cost is one extra layer that is thin today.
+
+### ADR-004: uv with a src layout
+
+- Context: the spec left the environment manager open.
+- Choice: `uv` for environment, lockfile, and Python version pinning; `src/` layout so tests import the installed package.
+- Alternatives: Poetry, pip-tools, plain venv plus requirements files.
+- Consequence: single fast tool with a committed lockfile; contributors need `uv` installed.
+
 ## Open decisions
 
-- Python environment/package manager.
 - Initial database introduction point.
 - Embedding and reranking models.
 - LLM provider or local model.

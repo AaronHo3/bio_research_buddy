@@ -1,0 +1,58 @@
+[
+  {
+    "source": "pubmed",
+    "source_id": "24157548",
+    "title": "Genome engineering using the CRISPR-Cas9 system.",
+    "abstract": "Targeted nucleases are powerful tools for mediating genome alteration with high precision. The RNA-guided Cas9 nuclease from the microbial clustered regularly interspaced short palindromic repeats (CRISPR) adaptive immune system can be used to facilitate efficient genome engineering in eukaryotic cells by simply specifying a 20-nt targeting sequence within its guide RNA. Here we describe a set of tools for Cas9-mediated genome editing via nonhomologous end joining (NHEJ) or homology-directed repair (HDR) in mammalian cells, as well as generation of modified cell lines for downstream functional studies. To minimize off-target cleavage, we further describe a double-nicking strategy using the Cas9 nickase mutant with paired guide RNAs. This protocol provides experimentally derived guidelines for the selection of target sites, evaluation of cleavage efficiency and analysis of off-target activity. Beginning with target design, gene modifications can be achieved within as little as 1-2 weeks, and modified clonal cell lines can be derived within 2-3 weeks.",
+    "authors": [
+      "Ran FA",
+      "Hsu PD",
+      "Wright J",
+      "Agarwala V",
+      "Scott DA",
+      "Zhang F"
+    ],
+    "journal": "Nature protocols",
+    "publication_date": {
+      "year": 2013,
+      "month": 11,
+      "day": null
+    },
+    "url": "https://pubmed.ncbi.nlm.nih.gov/24157548/"
+  },
+  {
+    "source": "pubmed",
+    "source_id": "28375731",
+    "title": "CRISPR-Cas9 Structures and Mechanisms.",
+    "abstract": "Many bacterial clustered regularly interspaced short palindromic repeats (CRISPR)-CRISPR-associated (Cas) systems employ the dual RNA-guided DNA endonuclease Cas9 to defend against invading phages and conjugative plasmids by introducing site-specific double-stranded breaks in target DNA. Target recognition strictly requires the presence of a short protospacer adjacent motif (PAM) flanking the target site, and subsequent R-loop formation and strand scission are driven by complementary base pairing between the guide RNA and target DNA, Cas9-DNA interactions, and associated conformational changes. The use of CRISPR-Cas9 as an RNA-programmable DNA targeting and editing platform is simplified by a synthetic single-guide RNA (sgRNA) mimicking the natural dual trans-activating CRISPR RNA (tracrRNA)-CRISPR RNA (crRNA) structure. This review aims to provide an in-depth mechanistic and structural understanding of Cas9-mediated RNA-guided DNA targeting and cleavage. Molecular insights from biochemical and structural studies provide a framework for rational engineering aimed at altering catalytic function, guide RNA specificity, and PAM requirements and reducing off-target activity for the development of Cas9-based therapies against genetic diseases.",
+    "authors": [
+      "Jiang F",
+      "Doudna JA"
+    ],
+    "journal": "Annual review of biophysics",
+    "publication_date": {
+      "year": 2017,
+      "month": 5,
+      "day": 22
+    },
+    "url": "https://pubmed.ncbi.nlm.nih.gov/28375731/"
+  },
+  {
+    "source": "pubmed",
+    "source_id": "25315507",
+    "title": "Genome modification by CRISPR/Cas9.",
+    "abstract": "Clustered regularly interspaced short palindromic repeats (CRISPR)-CRISPR-associated protein (Cas)9-mediated genome modification enables us to edit the genomes of a variety of organisms rapidly and efficiently. The advantages of the CRISPR-Cas9 system have made it an increasingly popular genetic engineering tool for biological and therapeutic applications. Moreover, CRISPR-Cas9 has been employed to recruit functional domains that repress/activate gene expression or label specific genomic loci in living cells or organisms, in order to explore developmental mechanisms, gene expression regulation, and animal behavior. One major concern about this system is its specificity; although CRISPR-Cas9-mediated off-target mutation has been broadly studied, more efforts are required to further improve the specificity of CRISPR-Cas9. We will also discuss the potential applications of CRISPR-Cas9.",
+    "authors": [
+      "Ma Y",
+      "Zhang L",
+      "Huang X"
+    ],
+    "journal": "The FEBS journal",
+    "publication_date": {
+      "year": 2014,
+      "month": 12,
+      "day": null
+    },
+    "url": "https://pubmed.ncbi.nlm.nih.gov/25315507/"
+  }
+]
