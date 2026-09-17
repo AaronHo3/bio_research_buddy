@@ -19,11 +19,21 @@ from pydantic import ValidationError
 
 from bio_research_copilot.adapters.literature import LiteratureSource, LiteratureSourceError
 from bio_research_copilot.adapters.persistence import PaperRepository, PersistenceError
-from bio_research_copilot.adapters.pubmed import PubMedClient
+from bio_research_copilot.adapters.pubmed import PubMedClient, parse_efetch_xml
 from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
-from bio_research_copilot.application import ingest_papers, query_passages, search_papers
+from bio_research_copilot.application import (
+    EvaluationReport,
+    evaluate_retrieval,
+    ingest_papers,
+    load_corpus,
+    query_passages,
+    search_papers,
+)
+from bio_research_copilot.application.evaluate import collapse_to_papers
 from bio_research_copilot.config import Settings
-from bio_research_copilot.domain import Paper, RetrievedEvidence, Source
+from bio_research_copilot.domain import Paper, RetrievedEvidence, SearchQuery, Source
+from bio_research_copilot.evaluation import load_benchmark
+from bio_research_copilot.retrieval import BM25Index
 
 DISCLAIMER = "For research and educational use only. Not medical advice."
 
@@ -111,6 +121,33 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     query.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
+
+    load = subparsers.add_parser(
+        "load-corpus", help="Store papers from a saved PubMed efetch XML file (no network)."
+    )
+    load.add_argument("xml_path", type=Path, help="Path to a PubmedArticleSet XML file.")
+    load.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
+
+    judge = subparsers.add_parser(
+        "judge", help="Print pooled candidate papers for unjudged benchmark questions."
+    )
+    judge.add_argument("benchmark", type=Path, help="Benchmark directory or questions.json.")
+    judge.add_argument("--pool", type=int, default=10, help="Candidates per question.")
+    judge.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
+
+    evaluate = subparsers.add_parser(
+        "evaluate", help="Score the lexical retriever against a benchmark and print a summary."
+    )
+    evaluate.add_argument("benchmark", type=Path, help="Benchmark directory or questions.json.")
+    evaluate.add_argument("--k", type=int, default=10, help="Cut-off for metrics (default: 10).")
+    evaluate.add_argument("--out", type=Path, default=None, help="Write the full JSON report here.")
+    evaluate.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
     return parser
 
 
@@ -193,12 +230,106 @@ def _cmd_query(args: argparse.Namespace, runtime: Runtime) -> int:
     return EXIT_OK
 
 
+def _read_text(path: Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"error: cannot read {path}: {exc.strerror or exc}", file=sys.stderr)
+        return None
+
+
+def _cmd_load_corpus(args: argparse.Namespace, runtime: Runtime) -> int:
+    xml_text = _read_text(args.xml_path)
+    if xml_text is None:
+        return EXIT_BAD_INPUT
+    papers = parse_efetch_xml(xml_text)
+    with runtime.open_repository(args.db) as repository:
+        report = load_corpus(repository, papers, label=args.xml_path.name)
+    print(json.dumps(report.model_dump(mode="json"), indent=2, ensure_ascii=False))
+    return EXIT_OK
+
+
+def _cmd_judge(args: argparse.Namespace, runtime: Runtime) -> int:
+    if not args.benchmark.exists():
+        print(f"error: cannot read {args.benchmark}: not found", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    benchmark = load_benchmark(args.benchmark)
+    with runtime.open_repository(args.db) as repository:
+        index = BM25Index(repository.all_passages())
+        lines: list[str] = []
+        for q in benchmark.questions:
+            if q.judged:
+                continue
+            lines.append(f"## {q.id} [{q.type}] {q.question}")
+            evidence = index.search(SearchQuery(raw=q.question, max_results=100))
+            for pid in collapse_to_papers(evidence, args.pool):
+                paper = repository.get_paper(Source.PUBMED, pid)
+                if paper is None:
+                    continue
+                abstract = (paper.abstract or "").replace("\n", " ")
+                snippet = abstract if len(abstract) <= 240 else abstract[:237] + "..."
+                lines.append(f"- {pid}  {paper.title}")
+                lines.append(f"    {snippet}")
+            lines.append("")
+    print("\n".join(lines) if lines else "All questions are judged.")
+    return EXIT_OK
+
+
+def render_evaluation_summary(report: EvaluationReport) -> str:
+    def fmt(value: float | None) -> str:
+        return "n/a" if value is None else f"{value:.3f}"
+
+    lines = [
+        f"benchmark {report.benchmark_version}  retriever {report.retriever}  k={report.k}",
+        f"corpus: {report.corpus_papers} papers, {report.corpus_passages} passages",
+        f"judged questions: {report.judged_questions}"
+        + (
+            f"  (unjudged: {', '.join(report.unjudged_questions)})"
+            if report.unjudged_questions
+            else ""
+        ),
+        f"mean  P@{report.k}={fmt(report.mean_precision)}  R@{report.k}={fmt(report.mean_recall)}"
+        f"  MRR={fmt(report.mean_mrr)}  nDCG@{report.k}={fmt(report.mean_ndcg)}"
+        f"  latency={report.mean_latency_ms:.1f}ms",
+    ]
+    for qtype, s in report.by_type.items():
+        lines.append(
+            f"  {qtype:<12} n={s.questions}  P={s.precision:.3f}  R={s.recall:.3f}"
+            f"  MRR={s.mrr:.3f}  nDCG={s.ndcg:.3f}"
+        )
+    for u in report.unanswerable:
+        top = "none" if u.top_score is None else f"{u.top_score:.3f}"
+        lines.append(f"  unanswerable {u.id}: {u.papers_returned} papers returned, top score {top}")
+    return "\n".join(lines)
+
+
+def _cmd_evaluate(args: argparse.Namespace, runtime: Runtime) -> int:
+    if not args.benchmark.exists():
+        print(f"error: cannot read {args.benchmark}: not found", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    benchmark = load_benchmark(args.benchmark)
+    with runtime.open_repository(args.db) as repository:
+        report = evaluate_retrieval(repository, benchmark, k=args.k)
+    print(render_evaluation_summary(report))
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(
+            json.dumps(report.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        print(f"report written to {args.out}")
+    return EXIT_OK
+
+
 _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "search": _cmd_search,
     "ingest": _cmd_ingest,
     "show": _cmd_show,
     "passages": _cmd_passages,
     "query": _cmd_query,
+    "load-corpus": _cmd_load_corpus,
+    "judge": _cmd_judge,
+    "evaluate": _cmd_evaluate,
 }
 
 

@@ -54,10 +54,19 @@ For research and educational use only. Not medical advice.
 
 ## Current milestone
 
-Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 is in progress: the BM25 lexical baseline over stored passages is done; next is a versioned evaluation set and a reproducible metrics report.
+Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 infrastructure is done: a BM25 lexical baseline, a committed 60-paper benchmark corpus with 12 questions, and an `evaluate` command that writes a reproducible metrics report (see `docs/EVALUATION.md`). Relevance judgments are being recorded; results will be published once they exist.
 
 See `PROJECT_SPEC.md` for scope. This README should evolve into the public recruiter/user-facing document as verified features and results exist.
 
+
+## Evaluation
+
+```bash
+uv run bio-copilot load-corpus evaluation/benchmark_v1/corpus.xml --db data/benchmark_v1.sqlite
+uv run bio-copilot evaluate evaluation/benchmark_v1 --k 10 --db data/benchmark_v1.sqlite
+```
+
+The benchmark is a fixed snapshot, so scores change only when the retriever changes. Method, metrics, and limitations are in [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Development setup
 

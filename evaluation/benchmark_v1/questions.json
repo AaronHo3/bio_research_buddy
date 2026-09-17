@@ -1,0 +1,98 @@
+{
+  "version": "benchmark_v1",
+  "judgment_unit": "paper",
+  "judgment_scale": "binary: a paper is relevant if its title or abstract directly addresses the question",
+  "judged_by": "",
+  "judged_at": "",
+  "notes": [
+    "relevant lists are PubMed IDs from corpus.xml. Empty lists on answerable questions mean NOT YET JUDGED, not 'nothing relevant'.",
+    "Unanswerable questions have no relevant papers by construction: the corpus does not cover them.",
+    "Judgments were made by reading titles and abstracts of the pooled candidates, see docs/EVALUATION.md."
+  ],
+  "questions": [
+    {
+      "id": "q01",
+      "topic": "crispr_base_editing",
+      "type": "mechanism",
+      "question": "What mechanisms cause off-target edits by cytosine base editors?",
+      "relevant": []
+    },
+    {
+      "id": "q02",
+      "topic": "crispr_base_editing",
+      "type": "comparison",
+      "question": "How do adenine base editors compare with cytosine base editors in off-target activity?",
+      "relevant": []
+    },
+    {
+      "id": "q03",
+      "topic": "crispr_base_editing",
+      "type": "target",
+      "question": "Which methods detect genome-wide off-target effects of base editors?",
+      "relevant": []
+    },
+    {
+      "id": "q04",
+      "topic": "checkpoint_immunotherapy",
+      "type": "mechanism",
+      "question": "What mechanisms drive resistance to PD-1 blockade in tumors?",
+      "relevant": []
+    },
+    {
+      "id": "q05",
+      "topic": "checkpoint_immunotherapy",
+      "type": "comparison",
+      "question": "How does combined CTLA-4 and PD-1 blockade compare with PD-1 monotherapy?",
+      "relevant": []
+    },
+    {
+      "id": "q06",
+      "topic": "checkpoint_immunotherapy",
+      "type": "target",
+      "question": "Which biomarkers predict response to immune checkpoint inhibitors?",
+      "relevant": []
+    },
+    {
+      "id": "q07",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "mechanism",
+      "question": "How does amyloid beta promote tau pathology in Alzheimer's disease?",
+      "relevant": []
+    },
+    {
+      "id": "q08",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "comparison",
+      "question": "Does tau pathology or amyloid burden correlate better with cognitive decline?",
+      "relevant": []
+    },
+    {
+      "id": "q09",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "target",
+      "question": "Which kinases phosphorylate tau in Alzheimer's disease?",
+      "relevant": []
+    },
+    {
+      "id": "q10",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "What is the optimal water temperature for zebrafish husbandry?",
+      "relevant": []
+    },
+    {
+      "id": "q11",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "Which malaria vaccine has the highest efficacy in children?",
+      "relevant": []
+    },
+    {
+      "id": "q12",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "What are the common side effects of statins in elderly patients?",
+      "relevant": []
+    }
+  ]
+}

@@ -295,6 +295,71 @@ def test_query_blank_question_is_exit_2(db: Path, capsys: pytest.CaptureFixture[
     assert capsys.readouterr().err.startswith("error: invalid input:")
 
 
+# -- load-corpus, judge, evaluate -----------------------------------------------
+
+BENCHMARK_DIR = Path(__file__).parent.parent.parent / "evaluation" / "benchmark_v1"
+
+
+def test_load_corpus_stores_the_committed_benchmark(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    code = run(
+        ["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], runtime(StubSource())
+    )
+    assert code == EXIT_OK
+    report = json.loads(capsys.readouterr().out)
+    assert report["papers_fetched"] == 60
+    assert report["papers_inserted"] == 60
+    assert report["question"] == "corpus:corpus.xml"
+    assert report["passages_written"] >= 119  # 60 titles + 59 abstracts, some structured
+
+
+def test_load_corpus_missing_file_is_exit_2(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    code = run(["load-corpus", "nope.xml", "--db", str(db)], runtime(StubSource()))
+    assert code == EXIT_BAD_INPUT
+    assert capsys.readouterr().err.startswith("error: cannot read nope.xml")
+
+
+def test_judge_lists_pooled_candidates_for_unjudged_questions(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource())
+    run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    code = run(["judge", str(BENCHMARK_DIR), "--pool", "3", "--db", str(db)], rt)
+    assert code == EXIT_OK
+    out = capsys.readouterr().out
+    assert "## q01 [mechanism]" in out
+    assert "## q10" not in out  # unanswerable questions are already judged
+    assert out.count("\n- ") <= 9 * 3
+
+
+def test_evaluate_prints_summary_and_writes_report(
+    db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource())
+    run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    out_file = tmp_path / "results" / "report.json"
+    code = run(
+        ["evaluate", str(BENCHMARK_DIR), "--k", "5", "--out", str(out_file), "--db", str(db)], rt
+    )
+    assert code == EXIT_OK
+    out = capsys.readouterr().out
+    assert "benchmark benchmark_v1  retriever bm25-v1  k=5" in out
+    assert "corpus: 60 papers" in out
+    assert "unanswerable q10" in out
+    report = json.loads(out_file.read_text(encoding="utf-8"))
+    assert report["k"] == 5
+    assert len(report["results"]) == 12
+
+
+def test_evaluate_missing_benchmark_is_exit_2(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    code = run(["evaluate", "nowhere", "--db", str(db)], runtime(StubSource()))
+    assert code == EXIT_BAD_INPUT
+    assert "cannot read nowhere" in capsys.readouterr().err
+
+
 def test_show_unopenable_db_is_exit_1(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     blocker = tmp_path / "file"
     blocker.write_text("x")

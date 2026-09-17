@@ -12,10 +12,16 @@ bio-copilot ingest "<question>" --limit N [--db PATH]
 bio-copilot show <source_id> [--source pubmed] [--db PATH]
 bio-copilot passages <source_id> [--source pubmed] [--db PATH]
 bio-copilot query "<question>" --k N [--format json|table] [--db PATH]
+bio-copilot load-corpus <efetch.xml> [--db PATH]
+bio-copilot judge <benchmark_dir> [--pool N] [--db PATH]
+bio-copilot evaluate <benchmark_dir> [--k N] [--out report.json] [--db PATH]
   -> cli.py                     composition root: Settings -> httpx.Client, PubMedClient, SqliteRepository
   -> application/search.py      search_papers(source, question, max_results)
   -> application/ingest.py      ingest_papers(source, repository, ...) -> upsert, chunk, record -> IngestReport
   -> application/query.py       query_passages(repository, question, k) -> ranked RetrievedEvidence
+  -> application/evaluate.py    evaluate_retrieval(repository, benchmark, k) -> EvaluationReport
+  -> evaluation/benchmark.py    Benchmark, BenchmarkQuestion, load_benchmark (questions.json)
+  -> evaluation/metrics.py      precision@k, recall@k, MRR, nDCG@k (binary relevance)
   -> retrieval/base.py          Retriever protocol
   -> retrieval/tokenize.py      lower-case, alphanumeric split, stopwords, no stemming
   -> retrieval/bm25.py          BM25Index ("bm25-v1"): in-memory index built from stored passages
@@ -35,13 +41,15 @@ Passages: each ingested paper is split by the named chunking strategy and its pa
 
 Local retrieval: `query` tokenizes the question, builds a BM25 index over every stored passage, and returns ranked `RetrievedEvidence` carrying the passage, rank, score, per-method component scores, and the retriever name. The index is rebuilt per query, which is milliseconds at this corpus size and guarantees it never drifts from the store. Ties break on `chunk_id`, so output is deterministic for a given store.
 
+Evaluation: `evaluation/benchmark_v1/` holds a committed 60-paper PubMed snapshot, a manifest, and 12 questions with paper-level judgments. `load-corpus` stores the snapshot offline, `judge` prints pooled candidates for the human judge, and `evaluate` scores a retriever and writes a JSON report with per-question rankings. See `docs/EVALUATION.md`.
+
 Observed in live use: PubMed's relevance sort is not stable across identical calls made seconds apart. Two consecutive ingests of the same question returned overlapping but different top-3 sets. Determinism holds for a given response, not for the live service; the evaluation set in Stage 3 must therefore be built from stored records, not re-fetched each run.
 
 Boundary enforcement is tested: `domain/` imports no adapter code and `application/` imports only the port, never the PubMed module or an HTTP library. Unit tests replay recorded NCBI responses through `httpx.MockTransport`; a single `live`-marked test calls NCBI for real and is deselected by default.
 
 Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
 
-Not yet implemented: pagination, evaluation set and metrics report, embeddings, synthesis, API, UI.
+Not yet implemented: pagination, embeddings and hybrid retrieval, synthesis, API, UI.
 
 ## Initial vertical slice
 

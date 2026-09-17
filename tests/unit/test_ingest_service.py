@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from bio_research_copilot.adapters.pubmed import parse_efetch_xml
 from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
-from bio_research_copilot.application import ingest_papers
+from bio_research_copilot.application import ingest_papers, load_corpus
 from bio_research_copilot.domain import Paper, SearchQuery, Source
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "pubmed"
@@ -88,6 +88,17 @@ def test_reingest_does_not_duplicate_passages(repo: SqliteRepository) -> None:
     ingest_papers(source, repo, "q", 3, clock=lambda: T1)
     ingest_papers(source, repo, "q", 3, clock=lambda: T1)
     assert repo.count_passages() == 6
+
+
+def test_load_corpus_records_file_provenance(repo: SqliteRepository) -> None:
+    report = load_corpus(repo, RECORDED, label="corpus.xml", clock=lambda: T1)
+    assert report.question == "corpus:corpus.xml"
+    assert report.max_results == 3
+    assert report.papers_inserted == 3
+    assert report.passages_written == 6
+    record = repo.get_retrieval(report.retrieval_id)
+    assert record is not None
+    assert record.question == "corpus:corpus.xml"
 
 
 def test_stored_paper_matches_fetched_paper(repo: SqliteRepository) -> None:

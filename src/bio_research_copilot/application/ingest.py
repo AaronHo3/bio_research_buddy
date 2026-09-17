@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 
 from bio_research_copilot.adapters.literature import LiteratureSource
 from bio_research_copilot.adapters.persistence import PaperRepository
-from bio_research_copilot.domain import Chunker, SearchQuery, SectionChunker
+from bio_research_copilot.domain import Chunker, Paper, SearchQuery, SectionChunker
 
 
 def utc_now() -> datetime:
@@ -46,20 +46,44 @@ def ingest_papers(
     clock: Callable[[], datetime] = utc_now,
 ) -> IngestReport:
     """Search, upsert, chunk, and record. Raises the same errors as the source and repository."""
-    chunker = chunker or SectionChunker()
     query = SearchQuery(raw=question, max_results=max_results)
     papers = source.search(query)
-    now = clock()
+    return _store(repository, papers, query.raw, query.max_results, chunker, clock())
+
+
+def load_corpus(
+    repository: PaperRepository,
+    papers: list[Paper],
+    *,
+    label: str,
+    chunker: Chunker | None = None,
+    clock: Callable[[], datetime] = utc_now,
+) -> IngestReport:
+    """Store an already-fetched set of papers, e.g. a committed benchmark snapshot.
+
+    Recorded as a retrieval whose question is ``corpus:<label>`` so provenance
+    shows the papers came from a file, not a live search.
+    """
+    return _store(repository, papers, f"corpus:{label}", len(papers), chunker, clock())
+
+
+def _store(
+    repository: PaperRepository,
+    papers: list[Paper],
+    question: str,
+    max_results: int,
+    chunker: Chunker | None,
+    now: datetime,
+) -> IngestReport:
+    chunker = chunker or SectionChunker()
     result = repository.upsert_papers(papers, seen_at=now)
     passages = [passage for paper in papers for passage in chunker.split(paper)]
     written = repository.replace_passages(passages)
-    retrieval_id = repository.record_retrieval(
-        query.raw, query.max_results, papers, retrieved_at=now
-    )
+    retrieval_id = repository.record_retrieval(question, max_results, papers, retrieved_at=now)
     return IngestReport(
         retrieval_id=retrieval_id,
-        question=query.raw,
-        max_results=query.max_results,
+        question=question,
+        max_results=max_results,
         retrieved_at=now,
         papers_fetched=len(papers),
         papers_inserted=result.inserted,
