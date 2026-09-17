@@ -320,18 +320,56 @@ def test_load_corpus_missing_file_is_exit_2(db: Path, capsys: pytest.CaptureFixt
     assert capsys.readouterr().err.startswith("error: cannot read nope.xml")
 
 
-def test_judge_lists_pooled_candidates_for_unjudged_questions(
-    db: Path, capsys: pytest.CaptureFixture[str]
+def write_benchmark(path: Path, questions: list[dict[str, object]]) -> Path:
+    """A throwaway benchmark file, so these tests never depend on judging progress."""
+    path.write_text(
+        json.dumps({"version": "t", "judgment_unit": "paper", "questions": questions}),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_judge_lists_only_unjudged_questions(
+    db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    bench = write_benchmark(
+        tmp_path / "questions.json",
+        [
+            {"id": "open", "topic": "t", "type": "mechanism", "question": "CRISPR off-target"},
+            {
+                "id": "done",
+                "topic": "t",
+                "type": "target",
+                "question": "Cas9",
+                "relevant": ["24157548"],
+            },
+            {"id": "una", "topic": "none", "type": "unanswerable", "question": "zebrafish"},
+        ],
+    )
     rt = runtime(StubSource())
     run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
     capsys.readouterr()
-    code = run(["judge", str(BENCHMARK_DIR), "--pool", "3", "--db", str(db)], rt)
-    assert code == EXIT_OK
+
+    assert run(["judge", str(bench), "--pool", "3", "--db", str(db)], rt) == EXIT_OK
     out = capsys.readouterr().out
-    assert "## q01 [mechanism]" in out
-    assert "## q10" not in out  # unanswerable questions are already judged
-    assert out.count("\n- ") <= 9 * 3
+    assert "## open [mechanism]" in out
+    assert "## done" not in out  # already judged
+    assert "## una" not in out  # unanswerable is judged by construction
+    assert out.count("\n- ") <= 3
+
+
+def test_judge_says_so_when_everything_is_judged(
+    db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    bench = write_benchmark(
+        tmp_path / "questions.json",
+        [{"id": "una", "topic": "none", "type": "unanswerable", "question": "zebrafish"}],
+    )
+    rt = runtime(StubSource())
+    run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    assert run(["judge", str(bench), "--db", str(db)], rt) == EXIT_OK
+    assert capsys.readouterr().out == "All questions are judged.\n"
 
 
 def test_evaluate_prints_summary_and_writes_report(

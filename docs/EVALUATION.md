@@ -61,11 +61,42 @@ The JSON report holds every question's ranked list and per-question metrics, so 
 
 ## Results
 
-Results are recorded here only after judgments exist. No numbers yet.
+Retriever `bm25-v1`, benchmark `benchmark_v1`, 60 papers and 135 passages, 9 judged questions and 40 judged-relevant papers. Full per-question reports are in `evaluation/results/`.
+
+| Metric | k=5 | k=10 |
+|---|---|---|
+| precision@k | 0.578 | 0.444 |
+| recall@k | 0.690 * | 1.000 * |
+| MRR | 0.944 | 0.944 |
+| nDCG@k | 0.768 | 0.899 |
+| latency (ms) | 0.1 | 0.2 |
+
+By question type at k=5:
+
+| Type | n | precision | recall * | MRR | nDCG |
+|---|---|---|---|---|---|
+| mechanism | 3 | 0.733 | 0.704 | 1.000 | 0.897 |
+| target | 3 | 0.600 | 0.700 | 1.000 | 0.779 |
+| comparison | 3 | 0.400 | 0.667 | 0.833 | 0.628 |
+
+### * Recall is not a valid measurement in this round
+
+Every judged-relevant paper was drawn from this retriever's own top ten, because the judging pool size and the evaluation cut-off were both ten. Recall@10 is therefore 1.000 by construction, not by performance, and recall@5 and nDCG are upper bounds. Precision and MRR are unaffected, because they score only what the retriever returned and all of those results were judged.
+
+The fix is to judge the full 20-paper topic for each question rather than a retriever-selected pool. Each topic's papers are shared by three questions, so this means reading 60 abstracts once and judging each against three questions. Until that is done, treat only precision, MRR, and latency as measured.
+
+### Findings
+
+- **Comparison questions are the weak type.** Precision at five is 0.400 against 0.733 for mechanism questions, and the only question whose first result was irrelevant is a comparison question. BM25 sums independent term matches and has no notion of one thing being weighed against another. A question contrasting adenine and cytosine base editors scores highly for any paper mentioning both, including papers that merely list them. This is the clearest case for semantic retrieval to improve on.
+- **Abstention looks feasible on score alone.** The lowest top score across answerable questions is 8.202. The highest across unanswerable questions is 4.140. A threshold separates them cleanly on this benchmark. Twelve questions is far too few to set a production threshold, but the signal exists and is worth re-measuring as the corpus grows.
+- **Two of three unanswerable questions still returned ten papers.** Generic clinical vocabulary such as "patients", "efficacy", and "children" appears throughout the corpus, so keyword matching always finds something. Returning results is not the same as having evidence, which is why the score gap above matters.
+- **Precision falls from 0.578 to 0.444 between k=5 and k=10.** Relevant papers cluster near the top, which is the expected shape and is consistent with the high MRR.
+- **Latency is negligible.** Well under a millisecond per query at this corpus size, so the index rebuild per query costs nothing worth optimising yet.
 
 ## Known limitations
 
 - 12 questions is enough to catch gross regressions and to support an error analysis, not to claim statistically significant differences between retrievers.
+- Round one judgments were pooled from a single retriever at the same depth as the evaluation cut-off, which makes recall degenerate. See the note under Results.
 - Single judge, so no inter-annotator agreement.
 - Pooling bias as described above.
 - Titles and abstracts only; full-text relevance is out of scope.

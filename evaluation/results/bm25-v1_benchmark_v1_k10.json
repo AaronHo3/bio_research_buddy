@@ -1,0 +1,425 @@
+{
+  "benchmark_version": "benchmark_v1",
+  "retriever": "bm25-v1",
+  "k": 10,
+  "corpus_papers": 60,
+  "corpus_passages": 135,
+  "generated_at": "2026-09-17T23:42:11.595789Z",
+  "judged_questions": 9,
+  "unjudged_questions": [],
+  "mean_precision": 0.4444444444444444,
+  "mean_recall": 1.0,
+  "mean_mrr": 0.9444444444444444,
+  "mean_ndcg": 0.8989070805129225,
+  "mean_latency_ms": 0.158200000441866,
+  "by_type": {
+    "comparison": {
+      "questions": 3,
+      "precision": 0.3,
+      "recall": 1.0,
+      "mrr": 0.8333333333333334,
+      "ndcg": 0.7815661839925742
+    },
+    "mechanism": {
+      "questions": 3,
+      "precision": 0.6,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "ndcg": 0.9708602053822213
+    },
+    "target": {
+      "questions": 3,
+      "precision": 0.43333333333333335,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "ndcg": 0.9442948521639719
+    }
+  },
+  "unanswerable": [
+    {
+      "id": "q10",
+      "papers_returned": 0,
+      "top_score": null
+    },
+    {
+      "id": "q11",
+      "papers_returned": 10,
+      "top_score": 3.6028593035772096
+    },
+    {
+      "id": "q12",
+      "papers_returned": 10,
+      "top_score": 4.140053937135229
+    }
+  ],
+  "results": [
+    {
+      "id": "q01",
+      "topic": "crispr_base_editing",
+      "type": "mechanism",
+      "question": "What mechanisms cause off-target edits by cytosine base editors?",
+      "judged": true,
+      "ranked_papers": [
+        "36357717",
+        "32630835",
+        "40207628",
+        "31911131",
+        "29746416",
+        "40119516",
+        "37356052",
+        "31317359",
+        "31902584",
+        "33626327"
+      ],
+      "relevant": [
+        "36357717",
+        "32630835",
+        "31911131"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.9674679834891693
+      },
+      "top_score": 16.59956195603243,
+      "latency_ms": 0.2199000009568408
+    },
+    {
+      "id": "q02",
+      "topic": "crispr_base_editing",
+      "type": "comparison",
+      "question": "How do adenine base editors compare with cytosine base editors in off-target activity?",
+      "judged": true,
+      "ranked_papers": [
+        "36357717",
+        "32630835",
+        "31911131",
+        "40207628",
+        "33626327",
+        "40119516",
+        "37356052",
+        "31317359",
+        "31902584",
+        "26735016"
+      ],
+      "relevant": [
+        "32630835",
+        "31911131",
+        "40119516"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 1.0,
+        "reciprocal_rank": 0.5,
+        "ndcg": 0.6978817289434457
+      },
+      "top_score": 20.36614772487203,
+      "latency_ms": 0.20619999850168824
+    },
+    {
+      "id": "q03",
+      "topic": "crispr_base_editing",
+      "type": "target",
+      "question": "Which methods detect genome-wide off-target effects of base editors?",
+      "judged": true,
+      "ranked_papers": [
+        "40207628",
+        "31911131",
+        "26735016",
+        "32630835",
+        "29746416",
+        "36357717",
+        "31317359",
+        "31902584",
+        "37356052",
+        "30684591"
+      ],
+      "relevant": [
+        "40207628",
+        "31911131",
+        "32630835",
+        "36357717"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.4,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.9438661545147247
+      },
+      "top_score": 19.411863412473508,
+      "latency_ms": 0.18519999866839498
+    },
+    {
+      "id": "q04",
+      "topic": "checkpoint_immunotherapy",
+      "type": "mechanism",
+      "question": "What mechanisms drive resistance to PD-1 blockade in tumors?",
+      "judged": true,
+      "ranked_papers": [
+        "40024354",
+        "33855973",
+        "37752135",
+        "39068460",
+        "38403027",
+        "36177034",
+        "35062949",
+        "39447408",
+        "32179091",
+        "36058143"
+      ],
+      "relevant": [
+        "40024354",
+        "33855973",
+        "37752135",
+        "38403027",
+        "36177034",
+        "35062949",
+        "39447408",
+        "32179091",
+        "36058143"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.9,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.9667147927059906
+      },
+      "top_score": 11.636402094579472,
+      "latency_ms": 0.17610000213608146
+    },
+    {
+      "id": "q05",
+      "topic": "checkpoint_immunotherapy",
+      "type": "comparison",
+      "question": "How does combined CTLA-4 and PD-1 blockade compare with PD-1 monotherapy?",
+      "judged": true,
+      "ranked_papers": [
+        "39068460",
+        "36058143",
+        "41478279",
+        "36601120",
+        "38403027",
+        "40024354",
+        "35062949",
+        "40154483",
+        "39447408",
+        "37603905"
+      ],
+      "relevant": [
+        "39068460",
+        "41478279",
+        "35062949"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.86034433104172
+      },
+      "top_score": 16.98697324192985,
+      "latency_ms": 0.1756999990902841
+    },
+    {
+      "id": "q06",
+      "topic": "checkpoint_immunotherapy",
+      "type": "target",
+      "question": "Which biomarkers predict response to immune checkpoint inhibitors?",
+      "judged": true,
+      "ranked_papers": [
+        "36177034",
+        "39447408",
+        "40154483",
+        "39059396",
+        "37752135",
+        "37603905",
+        "37831146",
+        "35062949",
+        "32179091",
+        "36601120"
+      ],
+      "relevant": [
+        "40154483",
+        "39447408",
+        "36177034",
+        "37831146"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.4,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.961999147059583
+      },
+      "top_score": 10.176437575657683,
+      "latency_ms": 0.1618999958736822
+    },
+    {
+      "id": "q07",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "mechanism",
+      "question": "How does amyloid beta promote tau pathology in Alzheimer's disease?",
+      "judged": true,
+      "ranked_papers": [
+        "31121890",
+        "20655099",
+        "40767321",
+        "32778792",
+        "34719499",
+        "38754634",
+        "28713158",
+        "32017704",
+        "37894559",
+        "26921134"
+      ],
+      "relevant": [
+        "31121890",
+        "20655099",
+        "40767321",
+        "32778792",
+        "38754634",
+        "32017704"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.6,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.9783978399515039
+      },
+      "top_score": 14.176312860622657,
+      "latency_ms": 0.17749999824445695
+    },
+    {
+      "id": "q08",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "comparison",
+      "question": "Does tau pathology or amyloid burden correlate better with cognitive decline?",
+      "judged": true,
+      "ranked_papers": [
+        "32017704",
+        "39504519",
+        "26921134",
+        "36396271",
+        "40767321",
+        "34239348",
+        "12895417",
+        "39196440",
+        "38754634",
+        "32778792"
+      ],
+      "relevant": [
+        "32017704",
+        "40767321",
+        "32778792"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.7864724919925569
+      },
+      "top_score": 12.1449901775456,
+      "latency_ms": 0.1453000004403293
+    },
+    {
+      "id": "q09",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "target",
+      "question": "Which kinases phosphorylate tau in Alzheimer's disease?",
+      "judged": true,
+      "ranked_papers": [
+        "32778792",
+        "34239348",
+        "34719499",
+        "38754634",
+        "31121890",
+        "40767321",
+        "20655099",
+        "32017704",
+        "37894559",
+        "26921134"
+      ],
+      "relevant": [
+        "34239348",
+        "40767321",
+        "32778792",
+        "38754634",
+        "32017704"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.5,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.9270192549176081
+      },
+      "top_score": 8.202311332272892,
+      "latency_ms": 0.1548000000184402
+    },
+    {
+      "id": "q10",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "What is the optimal water temperature for zebrafish husbandry?",
+      "judged": true,
+      "ranked_papers": [],
+      "relevant": [],
+      "metrics": null,
+      "top_score": null,
+      "latency_ms": 0.05729999975301325
+    },
+    {
+      "id": "q11",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "Which malaria vaccine has the highest efficacy in children?",
+      "judged": true,
+      "ranked_papers": [
+        "41478279",
+        "39059396",
+        "39068460",
+        "40050048",
+        "29746416",
+        "39223929",
+        "38403027",
+        "40154483",
+        "37603905",
+        "36601120"
+      ],
+      "relevant": [],
+      "metrics": null,
+      "top_score": 3.6028593035772096,
+      "latency_ms": 0.0850000069476664
+    },
+    {
+      "id": "q12",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "What are the common side effects of statins in elderly patients?",
+      "judged": true,
+      "ranked_papers": [
+        "26921134",
+        "40024354",
+        "36614219",
+        "36396271",
+        "37831146",
+        "36911732",
+        "31317359",
+        "31902584",
+        "37356052",
+        "31911131"
+      ],
+      "relevant": [],
+      "metrics": null,
+      "top_score": 4.140053937135229,
+      "latency_ms": 0.15350000467151403
+    }
+  ]
+}
