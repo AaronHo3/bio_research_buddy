@@ -31,6 +31,7 @@ from bio_research_copilot.adapters.reranking import Reranker, RerankerError
 from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
 from bio_research_copilot.application import (
     EvaluationReport,
+    answer_question,
     embed_corpus,
     evaluate_retrieval,
     ingest_papers,
@@ -47,7 +48,13 @@ from bio_research_copilot.application.query import (
     with_reranking,
 )
 from bio_research_copilot.config import Settings
-from bio_research_copilot.domain import Paper, RetrievedEvidence, SearchQuery, Source
+from bio_research_copilot.domain import (
+    Paper,
+    ResearchAnswer,
+    RetrievedEvidence,
+    SearchQuery,
+    Source,
+)
 from bio_research_copilot.evaluation import (
     Benchmark,
     CorpusManifest,
@@ -55,6 +62,7 @@ from bio_research_copilot.evaluation import (
     load_manifest,
 )
 from bio_research_copilot.retrieval import BM25Index
+from bio_research_copilot.synthesis import DEFAULT_CHAR_BUDGET, SynthesisError
 
 DISCLAIMER = "For research and educational use only. Not medical advice."
 
@@ -160,6 +168,51 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
         "--rerank-pool", type=int, default=25, help="Candidates to rerank (default: 25)."
     )
     query.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
+
+    answer = subparsers.add_parser(
+        "answer", help="Answer a question from stored evidence, with every claim cited."
+    )
+    answer.add_argument("question", help="The research question, in plain language.")
+    answer.add_argument(
+        "--k", type=int, default=8, help="Passages to retrieve as evidence (default: 8)."
+    )
+    answer.add_argument(
+        "--method",
+        choices=("bm25", "dense", "hybrid"),
+        default="bm25",
+        help="Retrieval method (default: bm25).",
+    )
+    answer.add_argument("--model", default=None, help="Embedding model, for dense and hybrid.")
+    answer.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Reorder the shortlist with a cross-encoder before answering.",
+    )
+    answer.add_argument("--rerank-model", default=None, help="Cross-encoder model, for --rerank.")
+    answer.add_argument(
+        "--rerank-pool", type=int, default=25, help="Candidates to rerank (default: 25)."
+    )
+    answer.add_argument(
+        "--min-score",
+        type=float,
+        default=None,
+        help="Abstain when the top passage scores below this. Scales differ by method.",
+    )
+    answer.add_argument(
+        "--char-budget",
+        type=int,
+        default=DEFAULT_CHAR_BUDGET,
+        help=f"Evidence characters given to synthesis (default: {DEFAULT_CHAR_BUDGET}).",
+    )
+    answer.add_argument(
+        "--format",
+        choices=("json", "text"),
+        default="text",
+        help="Output format (default: text).",
+    )
+    answer.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
 
@@ -480,12 +533,78 @@ def _cmd_embed(args: argparse.Namespace, runtime: Runtime) -> int:
     return EXIT_OK
 
 
+def render_answer(answer: ResearchAnswer, papers: dict[str, Paper]) -> str:
+    """The answer, its evidence, and what it does not cover."""
+    lines: list[str] = [f"Question: {answer.question}", ""]
+
+    if answer.abstained:
+        lines.append("No answer: the retrieved evidence does not support one.")
+    else:
+        for index, citation in enumerate(answer.citations, start=1):
+            refs = ", ".join(citation.evidence_ids)
+            lines.append(f"{index}. {citation.claim}")
+            lines.append(f"   [{refs}]")
+        lines.append("")
+        lines.append("Sources")
+        for chunk_id in dict.fromkeys(
+            ref for citation in answer.citations for ref in citation.evidence_ids
+        ):
+            passage = next(
+                (e.passage for e in answer.evidence if e.passage.chunk_id == chunk_id), None
+            )
+            if passage is None:
+                continue
+            paper = papers.get(passage.source_id)
+            title = paper.title if paper else "(title unavailable)"
+            url = paper.url if paper else ""
+            lines.append(f"  {chunk_id}  {title}")
+            if url:
+                lines.append(f"      {url}")
+
+    lines.append("")
+    lines.append("Limitations")
+    lines.extend(f"  - {note}" for note in answer.limitations)
+    lines.append("")
+    lines.append(DISCLAIMER)
+    return "\n".join(lines)
+
+
+def _cmd_answer(args: argparse.Namespace, runtime: Runtime) -> int:
+    build = _retriever_factory(args, runtime)
+    with runtime.open_repository(args.db) as repository:
+        answer = answer_question(
+            repository,
+            args.question,
+            build_retriever=build,
+            evidence_limit=args.k,
+            char_budget=args.char_budget,
+            min_score=args.min_score,
+        )
+        cited = {
+            passage.source_id
+            for passage in (e.passage for e in answer.evidence)
+            if any(passage.chunk_id in c.evidence_ids for c in answer.citations)
+        }
+        papers = {
+            pid: paper
+            for pid in cited
+            if (paper := repository.get_paper(Source.PUBMED, pid)) is not None
+        }
+
+    if args.format == "json":
+        print(json.dumps(answer.model_dump(mode="json"), indent=2, ensure_ascii=False))
+    else:
+        print(render_answer(answer, papers))
+    return EXIT_OK
+
+
 _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "search": _cmd_search,
     "ingest": _cmd_ingest,
     "show": _cmd_show,
     "passages": _cmd_passages,
     "query": _cmd_query,
+    "answer": _cmd_answer,
     "load-corpus": _cmd_load_corpus,
     "judge": _cmd_judge,
     "embed": _cmd_embed,
@@ -502,7 +621,13 @@ def run(argv: Sequence[str], runtime: Runtime) -> int:
         reasons = "; ".join(str(err["msg"]) for err in exc.errors())
         print(f"error: invalid input: {reasons}", file=sys.stderr)
         return EXIT_BAD_INPUT
-    except (LiteratureSourceError, PersistenceError, EmbeddingError, RerankerError) as exc:
+    except (
+        LiteratureSourceError,
+        PersistenceError,
+        EmbeddingError,
+        RerankerError,
+        SynthesisError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_DEPENDENCY_FAILED
 

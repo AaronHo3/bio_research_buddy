@@ -451,6 +451,84 @@ def test_query_blank_question_is_exit_2(db: Path, capsys: pytest.CaptureFixture[
     assert capsys.readouterr().err.startswith("error: invalid input:")
 
 
+# -- answer ---------------------------------------------------------------------
+
+ANSWERABLE = "What is the double nicking strategy for reducing off-target cleavage?"
+
+
+def test_answer_text_shows_claims_sources_and_limitations(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert run(["answer", ANSWERABLE, "--db", str(db)], rt) == EXIT_OK
+    out = capsys.readouterr().out
+    assert f"Question: {ANSWERABLE}" in out
+    assert "1. " in out
+    assert "[pubmed:" in out  # every claim carries its evidence id
+    assert "Sources" in out
+    assert "https://pubmed.ncbi.nlm.nih.gov/" in out
+    assert "Limitations" in out
+    assert "Not medical advice" in out
+
+
+def test_answer_claims_are_verbatim_from_cited_passages(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    run(["answer", ANSWERABLE, "--format", "json", "--db", str(db)], rt)
+    answer = json.loads(capsys.readouterr().out)
+    texts = {e["passage"]["chunk_id"]: e["passage"]["text"] for e in answer["evidence"]}
+    assert answer["citations"]
+    for citation in answer["citations"]:
+        assert citation["claim"] in texts[citation["evidence_ids"][0]]
+
+
+def test_answer_abstains_visibly(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert run(["answer", "zebrafish husbandry", "--db", str(db)], rt) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "No answer" in out
+    assert "Sources" not in out
+    assert "Limitations" in out
+
+
+def test_answer_min_score_forces_abstention(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    argv = ["answer", ANSWERABLE, "--min-score", "1e9", "--format", "json", "--db", str(db)]
+    run(argv, rt)
+    assert json.loads(capsys.readouterr().out)["abstained"] is True
+
+
+def test_answer_respects_the_retrieval_method(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    run(["embed", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    argv = ["answer", ANSWERABLE, "--method", "hybrid", "--format", "json", "--db", str(db)]
+    run(argv, rt)
+    answer = json.loads(capsys.readouterr().out)
+    assert answer["retrieval_method"] == "rrf(bm25-v1+dense:fake-v1)"
+    assert answer["synthesis_method"] == "extractive-v1"
+
+
+def test_answer_blank_question_is_exit_2(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run(["answer", "  ", "--db", str(db)], runtime(StubSource())) == EXIT_BAD_INPUT
+    assert "error: invalid input" in capsys.readouterr().err
+
+
 # -- load-corpus, judge, evaluate -----------------------------------------------
 
 BENCHMARK_DIR = Path(__file__).parent.parent.parent / "evaluation" / "benchmark_v1"

@@ -91,6 +91,58 @@ class SearchQuery(BaseModel):
     max_results: int = Field(default=10, ge=1, le=100)
 
 
+class Citation(BaseModel):
+    """One claim in an answer, with the evidence it rests on.
+
+    ``evidence_ids`` are passage chunk ids. A citation with no evidence is not
+    representable: a claim the system cannot support must not be made at all.
+    """
+
+    model_config = _STRICT
+
+    claim: str = Field(min_length=1)
+    evidence_ids: list[str] = Field(min_length=1)
+
+
+class ResearchAnswer(BaseModel):
+    """A question, what the system concluded, and what it rested that on.
+
+    ``abstained`` is not the same as an empty answer. Abstaining is a positive
+    statement that the retrieved evidence did not support a response, which the
+    product specification requires the interface to show.
+    """
+
+    model_config = _STRICT
+
+    question: str = Field(min_length=1)
+    citations: list[Citation] = Field(default_factory=list)
+    evidence: list["RetrievedEvidence"] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    abstained: bool = False
+    retrieval_method: str = Field(min_length=1)
+    synthesis_method: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _claims_require_evidence(self) -> Self:
+        """Every cited id must be in this answer's own evidence.
+
+        This is the Stage 5 gate from the project specification: no displayed
+        citation may refer to evidence that is not present. Enforcing it in the
+        model rather than in a check means an answer violating it cannot be
+        constructed at all, whatever produced it.
+        """
+        if self.abstained and self.citations:
+            msg = "an abstained answer cannot carry citations"
+            raise ValueError(msg)
+        available = {item.passage.chunk_id for item in self.evidence}
+        for citation in self.citations:
+            unknown = [ref for ref in citation.evidence_ids if ref not in available]
+            if unknown:
+                msg = f"citation refers to evidence not in this answer: {sorted(unknown)}"
+                raise ValueError(msg)
+        return self
+
+
 class PassageEmbedding(BaseModel):
     """One passage's vector under one named model.
 
@@ -124,3 +176,6 @@ class RetrievedEvidence(BaseModel):
         default_factory=dict, description='Per-method scores, e.g. {"bm25": 3.1}.'
     )
     method: str = Field(min_length=1, description="Retriever name and version.")
+
+
+ResearchAnswer.model_rebuild()

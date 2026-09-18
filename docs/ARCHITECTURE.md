@@ -12,6 +12,7 @@ bio-copilot ingest "<question>" --limit N [--db PATH]
 bio-copilot show <source_id> [--source pubmed] [--db PATH]
 bio-copilot passages <source_id> [--source pubmed] [--db PATH]
 bio-copilot query "<question>" --k N [--method bm25|dense|hybrid] [--rerank] [--format json|table] [--db PATH]
+bio-copilot answer "<question>" [--method ...] [--rerank] [--min-score N] [--db PATH]
 bio-copilot load-corpus <efetch.xml> [--db PATH]
 bio-copilot judge <benchmark_dir> [--scope topic|pool] [--db PATH]
 bio-copilot embed [--model NAME] [--batch-size N] [--db PATH]
@@ -20,6 +21,11 @@ bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense|hybrid] [--rer
   -> application/search.py      search_papers(source, question, max_results)
   -> application/ingest.py      ingest_papers(source, repository, ...) -> upsert, chunk, record -> IngestReport
   -> application/query.py       query_passages(repository, question, k) -> ranked RetrievedEvidence
+  -> application/answer.py      answer_question(...) -> ResearchAnswer, or an abstention
+  -> synthesis/base.py          SynthesisProvider protocol
+  -> synthesis/context.py       select_evidence: rank-ordered, within a character budget
+  -> synthesis/extractive.py    ExtractiveSynthesizer ("extractive-v1"): claims copied verbatim
+  -> domain/sentences.py        rule-based sentence splitter with a biomedical abbreviation list
   -> application/evaluate.py    evaluate_retrieval(repository, benchmark, k) -> EvaluationReport
   -> evaluation/benchmark.py    Benchmark, BenchmarkQuestion, load_benchmark (questions.json)
   -> evaluation/metrics.py      precision@k, recall@k, MRR, nDCG@k (binary relevance)
@@ -40,7 +46,7 @@ bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense|hybrid] [--rer
   -> adapters/resilience.py     RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
   -> adapters/persistence.py    PaperRepository protocol, UpsertResult, RetrievalRecord
   -> adapters/sqlite_repository.py  stdlib sqlite3; tables papers, retrievals, retrieval_papers, passages, embeddings
-  -> domain/models.py           Paper, PublicationDate, Passage, SearchQuery, RetrievedEvidence
+  -> domain/models.py           Paper, PublicationDate, Passage, SearchQuery, RetrievedEvidence, Citation, ResearchAnswer
   -> domain/chunking.py         Chunker protocol; SectionChunker ("section-v1"): title + one passage per abstract section
   -> stdout (JSON or table); errors to stderr; exit 1 dependency failed, 2 bad input, 3 not found
 ```
@@ -55,6 +61,10 @@ Embeddings: vectors are stored per passage per model, as packed float32 blobs ke
 
 Re-ingesting a paper updates its surviving passages in place instead of deleting and reinserting them, so their vectors survive; only a passage that genuinely disappears is deleted, and its vectors cascade away with it. Without that, every re-ingest would discard the whole corpus of vectors.
 
+Grounding is enforced in the type, not by a check a caller might forget. `ResearchAnswer` validates that every cited id appears in the evidence the answer itself carries, so an answer citing something absent cannot be constructed at all, whatever produced it. The answer also carries only the evidence synthesis actually saw, which closes the gap where a provider could cite a passage that was retrieved but budgeted out.
+
+Abstention is a first-class outcome with three causes: retrieval found nothing, the top score fell below a configured floor, or synthesis could not form a claim. Each records its reason in the answer's limitations.
+
 Retrieval methods share one `Retriever` protocol and are selected with `--method`, so the evaluation command scores any of them unchanged. A retriever is built from the repository per call. The lexical index reads passages; the dense index reads passages paired with their stored vectors and refuses to run on a partially embedded corpus, because silently searching part of it would understate recall.
 
 Evaluation: `evaluation/benchmark_v1/` holds a committed 60-paper PubMed snapshot, a manifest, and 12 questions with paper-level judgments. `load-corpus` stores the snapshot offline, `judge` prints pooled candidates for the human judge, and `evaluate` scores a retriever and writes a JSON report with per-question rankings. See `docs/EVALUATION.md`.
@@ -65,7 +75,7 @@ Boundary enforcement is tested: `domain/` imports no adapter code and `applicati
 
 Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
 
-Not yet implemented: pagination, synthesis, API, UI.
+Not yet implemented: pagination, a language-model synthesis provider, synthesis evaluation (citation correctness and faithfulness), API, UI.
 
 ## Initial vertical slice
 
@@ -185,9 +195,18 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - That appearance was an artifact of ADR-006. MedCPT's article encoder expects a title and abstract together; `SectionChunker` stores them as separate passages, so the encoder never saw a paper in its trained shape. Ranking whole papers in the documented format lifts nDCG to 0.786 and MRR to 0.944, matching the best in the project. Most of the deficit was the pipeline, not the model.
 - Consequence: the chunking strategy now has a measured cost, not just a rationale. A strategy that keeps a title with its abstract would suit models with that contract and would coarsen citation granularity. Both effects can now be measured rather than argued.
 
+### ADR-014: A deterministic extractive baseline before any language model
+
+- Context: Stage 5 requires an answer whose every claim maps to retrieved evidence, and which abstains when evidence is missing. A language model is the obvious way to write such an answer and brings a provider choice, a cost, a key, and an unfalsifiable faithfulness question.
+- Choice: build the whole grounding pipeline against a `SynthesisProvider` port with a deterministic extractive provider first. Each claim is a sentence copied verbatim from a retrieved passage, selected by overlap with the question.
+- Rationale: an extractive summariser cannot fabricate, so faithfulness is a property of its construction rather than a measurement. It therefore pins the ceiling on faithfulness at complete and sets a low floor on answer quality, which is precisely what a language model must then beat: better answers without losing grounding. It also lets the citation schema, the evidence budget, the abstention paths, and the integrity rule all be built and tested with no provider, no key and no cost, exactly as the lexical baseline did for retrieval.
+- The integrity rule lives in `ResearchAnswer` as a validator rather than in the service. A provider that invents a citation fails at construction, so the guarantee holds for a future language model without that model being trusted.
+- Observed weakness, from real output: the baseline selects sentences by term overlap, so it returns sentences about the right topic that do not answer the question, and passages that are paper titles become claims that read as citations. Both are the expected shape of the floor rather than defects to fix here.
+- Consequence: the provider decision comes to the author with the machinery already proven and a concrete baseline to measure against.
+
 ## Open decisions
 
 - Whether a chunking strategy that keeps a title with its abstract is worth the coarser citations; the MedCPT diagnostic suggests it is worth about 0.089 nDCG to a model that expects that format.
-- LLM provider or local model.
+- LLM provider or local model, now with an extractive baseline to beat and a grounding guarantee it will inherit.
 - Frontend framework and deployment target.
 
