@@ -59,6 +59,8 @@ Unanswerable questions have no relevant set, so ranking metrics are undefined fo
 
 Passage rankings are collapsed to paper rankings by giving each paper the rank of its best passage.
 
+Both precision and recall are bounded by how many papers are relevant to a question. Precision at k cannot exceed `min(k, relevant)/k`, and recall at k cannot exceed `min(k, relevant)/relevant`. Relevance counts here range from three to seventeen, so raw precision and recall are compared against those ceilings rather than against 1.0, and cross-type comparisons use nDCG and MRR, which normalise against the ideal ranking.
+
 ## Running it
 
 ```bash
@@ -72,37 +74,66 @@ The JSON report holds every question's ranked list and per-question metrics, so 
 
 ## Results
 
-Retriever `bm25-v1`, benchmark `benchmark_v1`, 60 papers and 135 passages, 9 judged questions and 40 judged-relevant papers. Full per-question reports are in `evaluation/results/`.
+Retriever `bm25-v1`, benchmark `benchmark_v1`. Corpus of 60 papers and 135 passages, 9 judged questions, 61 judged-relevant papers from exhaustive per-topic judging. Full per-question reports are in `evaluation/results/`.
 
 | Metric | k=5 | k=10 |
 |---|---|---|
-| precision@k | 0.578 | 0.444 |
-| recall@k | 0.690 * | 1.000 * |
+| precision@k | 0.600 | 0.467 |
+| recall@k | 0.572 | 0.837 |
 | MRR | 0.944 | 0.944 |
-| nDCG@k | 0.768 | 0.899 |
+| nDCG@k | 0.760 | 0.826 |
 | latency (ms) | 0.1 | 0.2 |
 
-By question type at k=5:
+By question type:
 
-| Type | n | precision | recall * | MRR | nDCG |
-|---|---|---|---|---|---|
-| mechanism | 3 | 0.733 | 0.704 | 1.000 | 0.897 |
-| target | 3 | 0.600 | 0.700 | 1.000 | 0.779 |
-| comparison | 3 | 0.400 | 0.667 | 0.833 | 0.628 |
-
-### * Recall is not a valid measurement in this round
-
-Every judged-relevant paper was drawn from this retriever's own top ten, because the judging pool size and the evaluation cut-off were both ten. Recall@10 is therefore 1.000 by construction, not by performance, and recall@5 and nDCG are upper bounds. Precision and MRR are unaffected, because they score only what the retriever returned and all of those results were judged.
-
-The fix is to judge the full 20-paper topic for each question rather than a retriever-selected pool. Each topic's papers are shared by three questions, so this means reading 60 abstracts once and judging each against three questions. Until that is done, treat only precision, MRR, and latency as measured.
+| Type | n | P@5 | nDCG@5 | P@10 | R@10 | MRR | nDCG@10 |
+|---|---|---|---|---|---|---|---|
+| mechanism | 3 | 0.733 | 0.897 | 0.600 | 0.676 | 1.000 | 0.861 |
+| target | 3 | 0.667 | 0.791 | 0.467 | 0.833 | 1.000 | 0.836 |
+| comparison | 3 | 0.400 | 0.592 | 0.333 | 1.000 | 0.833 | 0.781 |
 
 ### Findings
 
-- **Comparison questions are the weak type.** Precision at five is 0.400 against 0.733 for mechanism questions, and the only question whose first result was irrelevant is a comparison question. BM25 sums independent term matches and has no notion of one thing being weighed against another. A question contrasting adenine and cytosine base editors scores highly for any paper mentioning both, including papers that merely list them. This is the clearest case for semantic retrieval to improve on.
-- **Abstention looks feasible on score alone.** The lowest top score across answerable questions is 8.202. The highest across unanswerable questions is 4.140. A threshold separates them cleanly on this benchmark. Twelve questions is far too few to set a production threshold, but the signal exists and is worth re-measuring as the corpus grows.
-- **Two of three unanswerable questions still returned ten papers.** Generic clinical vocabulary such as "patients", "efficacy", and "children" appears throughout the corpus, so keyword matching always finds something. Returning results is not the same as having evidence, which is why the score gap above matters.
-- **Precision falls from 0.578 to 0.444 between k=5 and k=10.** Relevant papers cluster near the top, which is the expected shape and is consistent with the high MRR.
-- **Latency is negligible.** Well under a millisecond per query at this corpus size, so the index rebuild per query costs nothing worth optimising yet.
+**Recall is close to its achievable ceiling at k=10, and short of it at k=5.** The number of relevant papers per question ranges from three to seventeen, so a question with seventeen relevant papers cannot exceed 10/17 recall at k=10 no matter how good the retriever is. Measured against the achievable ceiling rather than against 1.0:
+
+| | mean recall | mean ceiling | shortfall |
+|---|---|---|---|
+| k=5 | 0.572 | 0.801 | 0.229 |
+| k=10 | 0.837 | 0.936 | 0.099 |
+
+Six of the nine questions reach perfect recall at k=10. The shortfall is concentrated in two questions, and almost all of it in one.
+
+**The clearest failure is a vocabulary mismatch, not a ranking problem.** Question six asks which biomarkers predict response to checkpoint inhibitors. Ten papers are relevant and BM25 returns five in its top ten. The three it ranks highest all use the word "biomarker" prominently. Three of the five it misses never use the word at all, and instead name a specific marker:
+
+```text
+MISSED  Targeting SRSF10 might inhibit M2 macrophage polarization and potentiate anti-PD-1 therapy
+MISSED  Cell-intrinsic PD-L1 signaling drives immunosuppression by myeloid-derived suppressor cells
+MISSED  Immune signature-based uncoupling of checkpoint inhibitor efficacy and toxicity
+```
+
+Each of these is a biomarker paper in substance and not in vocabulary. No amount of tuning the ranking formula finds them, because the query terms are absent from the text. This is the specific gap semantic retrieval should close, and question six is the case to watch when it is added.
+
+**Raw precision cannot be compared across question types here.** Precision at k is capped at min(k, relevant)/k, and the count of relevant papers varies from three to seventeen across questions. At k=10 the comparison questions score 0.333, which is exactly their ceiling: they cannot do better because only three or four papers are relevant. Reporting that as a weakness would be wrong.
+
+| Type | P@10 | ceiling | shortfall |
+|---|---|---|---|
+| mechanism | 0.600 | 0.767 | 0.167 |
+| target | 0.467 | 0.633 | 0.167 |
+| comparison | 0.333 | 0.333 | 0.000 |
+
+nDCG and MRR normalise against the ideal ranking, so they do support cross-type comparison. Both are used below.
+
+**Comparison questions are genuinely the weakest type, on the metrics that can say so.** Comparison scores 0.592 nDCG at k=5 against 0.897 for mechanism, and it holds the only reciprocal rank below 1.0. The retriever finds every relevant comparison paper by k=10, so this is a ranking failure rather than a retrieval failure. BM25 sums independent term matches and has no representation of one thing being weighed against another, so a paper that merely mentions both base editor types scores as well as one that compares them.
+
+**Abstention on score alone looks feasible.** The lowest top score among answerable questions is 8.202, and the highest among unanswerable questions is 4.140. A threshold separates them cleanly here. Twelve questions cannot set a production threshold, but the signal is worth re-measuring as the corpus grows.
+
+**Two of three unanswerable questions still return a full page of results.** Generic clinical vocabulary such as "patients", "efficacy", and "children" is common across the corpus, so keyword matching always finds something. Returning results is not the same as having evidence, which is what makes the score gap above matter.
+
+**Latency is not a concern at this scale.** Well under a millisecond per query, so rebuilding the index on every call costs nothing worth optimising yet.
+
+### Baseline to beat
+
+Any retrieval change is measured against these numbers on this benchmark. The two specific targets are recall at k=10, currently 0.099 below its achievable ceiling, and nDCG on comparison questions, currently 0.592 at k=5.
 
 ## Known limitations
 
