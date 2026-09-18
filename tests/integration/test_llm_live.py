@@ -7,16 +7,18 @@ instruction to cite only supplied ids.
 """
 
 import hashlib
-import os
 
 import pytest
 
+from bio_research_copilot.config import Settings
 from bio_research_copilot.domain import Passage, RetrievedEvidence, Source
 from bio_research_copilot.synthesis.llm import LlmSynthesizer
 
 pytestmark = pytest.mark.live
 
-API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+# Through Settings rather than os.environ, because a key in .env never reaches
+# the process environment and the test would skip while appearing to be covered.
+API_KEY = Settings().anthropic_api_key
 requires_key = pytest.mark.skipif(not API_KEY, reason="ANTHROPIC_API_KEY is not set")
 
 QUESTION = "What causes off-target editing by base editors?"

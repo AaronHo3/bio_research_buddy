@@ -26,6 +26,7 @@ typed loosely here: the rest of the project speaks ``httpx`` and this one part
 cannot.
 """
 
+import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -44,6 +45,10 @@ DEFAULT_MODEL = "claude-sonnet-5"
 DEFAULT_MAX_TOKENS = 1024
 DEFAULT_MAX_CLAIMS = 6
 DEFAULT_MAX_RETRIES = 2
+
+# How many times a claims payload may be unwrapped before it is rejected. See
+# ``_unwrap_claims``: the observed worst case needs four.
+_MAX_UNWRAP = 6
 
 INSTALL_HINT = (
     "LLM synthesis needs the anthropic package, which is an optional dependency;"
@@ -225,6 +230,34 @@ def build_llm_synthesizer(model: str, *, api_key: str | None = None) -> LlmSynth
     return LlmSynthesizer(api_key=api_key, model=model)
 
 
+def _unwrap_claims(value: Any) -> list[Any] | None:
+    """The claims array, tolerating a payload that re-encoded it as a string.
+
+    Observed from a real model when abstaining: the tool input arrived as
+    ``{"claims": "{\\"claims\\": []}"}``, the array serialised back to JSON and
+    wrapped a second time. The API accepts that because the outer shape still
+    matches, so the adapter has to. Refusing it would turn a correct abstention
+    into an error, which is the opposite of the behaviour the product wants.
+
+    Returns ``None`` when the value is not a claims array under any unwrapping,
+    which the caller treats as a broken contract.
+    """
+    for _ in range(_MAX_UNWRAP):
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except ValueError:
+                return None
+            continue
+        if isinstance(value, dict) and "claims" in value:
+            value = value["claims"]
+            continue
+        return None
+    return None
+
+
 def _extract_claims(message: Any) -> list[dict[str, Any]]:
     """The tool call's claim list, or an error if the model did not make one.
 
@@ -236,11 +269,8 @@ def _extract_claims(message: Any) -> list[dict[str, Any]]:
             continue
         if getattr(block, "name", None) != TOOL_NAME:
             continue
-        payload = getattr(block, "input", None)
-        if not isinstance(payload, dict):
-            break
-        claims = payload.get("claims")
-        if not isinstance(claims, list):
+        claims = _unwrap_claims(getattr(block, "input", None))
+        if claims is None:
             break
         return [entry for entry in claims if isinstance(entry, dict)]
 

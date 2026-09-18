@@ -273,10 +273,50 @@ class TestFailure:
         with pytest.raises(SynthesisError, match="required format"):
             provider.synthesize(QUESTION, EVIDENCE)
 
-    def test_a_tool_call_without_a_claims_array_is_rejected(self) -> None:
+    def test_a_reencoded_claims_payload_is_unwrapped(self) -> None:
+        """Regression: a live model returned the array as a doubly-wrapped string.
+
+        The real payload was {"claims": "{\\"claims\\": []}"} on an abstention.
+        Rejecting it turned a correct abstention into an error.
+        """
+        body = tool_response([])
+        body["content"] = [
+            {
+                "type": "tool_use",
+                "id": "toolu_01",
+                "name": TOOL_NAME,
+                "input": {"claims": '{"claims": []}'},
+            }
+        ]
+        provider, _ = make(body)
+        assert provider.synthesize(QUESTION, EVIDENCE) == []
+
+    def test_a_singly_encoded_claims_string_is_unwrapped(self) -> None:
+        body = tool_response([])
+        body["content"] = [
+            {
+                "type": "tool_use",
+                "id": "toolu_01",
+                "name": TOOL_NAME,
+                "input": {"claims": '[{"claim": "Real.", "evidence_ids": ["pubmed:1:0"]}]'},
+            }
+        ]
+        provider, _ = make(body)
+        assert [c.claim for c in provider.synthesize(QUESTION, EVIDENCE)] == ["Real."]
+
+    def test_a_claims_string_that_is_not_json_is_still_rejected(self) -> None:
         body = tool_response([])
         body["content"] = [
             {"type": "tool_use", "id": "toolu_01", "name": TOOL_NAME, "input": {"claims": "nope"}}
+        ]
+        provider, _ = make(body)
+        with pytest.raises(SynthesisError, match="required format"):
+            provider.synthesize(QUESTION, EVIDENCE)
+
+    def test_a_tool_call_without_a_claims_array_is_rejected(self) -> None:
+        body = tool_response([])
+        body["content"] = [
+            {"type": "tool_use", "id": "toolu_01", "name": TOOL_NAME, "input": {"other": 1}}
         ]
         provider, _ = make(body)
         with pytest.raises(SynthesisError, match="required format"):
