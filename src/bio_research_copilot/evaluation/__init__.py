@@ -1,5 +1,11 @@
-"""Retrieval evaluation: metrics and benchmark loading. Pure computation."""
+"""Evaluation primitives: metrics, benchmark loading, label agreement. Pure computation."""
 
+from bio_research_copilot.evaluation.agreement import (
+    AgreementReport,
+    Disagreement,
+    compare_labels,
+    interpret_kappa,
+)
 from bio_research_copilot.evaluation.benchmark import (
     Benchmark,
     BenchmarkQuestion,
@@ -18,11 +24,15 @@ from bio_research_copilot.evaluation.metrics import (
 )
 
 __all__ = [
+    "AgreementReport",
     "Benchmark",
     "BenchmarkQuestion",
     "CorpusManifest",
+    "Disagreement",
     "RankMetrics",
     "TopicSnapshot",
+    "compare_labels",
+    "interpret_kappa",
     "load_benchmark",
     "load_manifest",
     "ndcg_at_k",

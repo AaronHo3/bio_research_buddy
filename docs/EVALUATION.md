@@ -454,15 +454,35 @@ Sonnet is expansive. It writes more claims, combines more, and 11 of them reach 
 
 This is the same tradeoff as the abstention table seen from the other side. Sonnet answers more and overreaches more; Haiku answers less and overreaches less. Neither is simply better, and a product decision here depends on whether a reader is better served by more coverage or by tighter claims.
 
-### Both models made the same error, on the same passage
+### Both models made the same inference, and the judge rejected it
 
-The single `unsupported` verdict for each model is the same claim, q04:2, and the same mistake: both stated that PARP14 enhances effector T cell infiltration, when the passage says that PARP14 *inhibition* enhances it. Both inverted the direction of the effect while reading a sentence about knockdown experiments.
+The single `unsupported` verdict for each model is the same claim, q04:2, on the same passage. The passage reports that inhibiting or knocking down PARP14 raises effector T cell infiltration and lowers regulatory T cells. Both models turned that into a statement about PARP14 itself: Sonnet wrote that PARP14 "enhances effector T cell suppression", Haiku that it "reduces effector T cell infiltration". Both have the direction right.
 
-That two independent models failed identically on one passage and nowhere else suggests the failure is a property of the passage rather than of either model. It is also the most dangerous error class in this project: a fluent, correctly cited, confidently stated inversion of a result. Term overlap would never catch it; the citation-integrity type cannot catch it; only reading the passage catches it.
+What they did is infer a mechanism from a knockdown experiment, which is routine scientific reading and still strictly more than the passage states. The passage establishes what happens when PARP14 is removed, not what PARP14 does when present. That is the definition of `partially_supported` in this scheme, so the judge reached the right concern and then applied the wrong label; its own recorded reason concedes the claim is "roughly consistent" before rejecting it.
 
-### What these numbers are not yet
+So the most severe verdict the judge issued on either model is one it argued itself out of. That is a finding about the judge, not about the synthesis.
 
-Every figure above is one model's opinion of another model's output. A sample of 20 of Sonnet's 40 claims has been drawn with a fixed seed for hand labelling, and the agreement between human and judge is not yet measured. Until it is, the strict and lenient rates should be read as indicative and the control result above as the only validated claim about the judge.
+### Human validation: the judge is stricter than its author
+
+20 of Sonnet's 40 claims were drawn with a fixed seed and labelled by hand before the judge's verdicts were read.
+
+| | Human | Judge |
+|---|---|---|
+| supported | 19 | 13 |
+| partially_supported | 1 | 6 |
+| unsupported | 0 | 1 |
+
+Raw agreement 0.700, expected by chance 0.632, Cohen's kappa **0.184**, which the conventional reading calls slight. Both numbers are needed: raw agreement alone flatters a labelling this skewed, and kappa alone collapses toward zero precisely because both labellers used one category for most items. The confusion matrix is what actually explains them.
+
+All six disagreements run the same way: human `supported`, judge stricter. Not one runs the other way. That is a calibration difference, not noise, and reading the cases shows what the difference is.
+
+- **q06:1** The claim says PD-1 and PD-L1 are promising biomarkers *because* their interaction is linked to progression and immune escape. The passage states the biomarker status and the interaction as separate sentences and never connects them causally. The judge is right; the claim inserts a connective the passage does not license.
+- **q07:2** The cited passage is a bare title, "Synergy between amyloid-β and tau in Alzheimer's disease." The claim adds "rather than either protein acting entirely independently." The judge is right, and this is the title-only failure mode again.
+- **q04:2** The judge's own reason concedes the claim is "roughly consistent" and then marks it unsupported. Here the human label is the better one.
+
+The pattern is a threshold: the human judged whether the gist held, the judge judged whether every connective was licensed by the text. Neither standard is wrong, and the project needs the stricter one, because the whole point of an evidence-grounded tool is that a reader can check a claim against its source and find it there.
+
+Two consequences. The strict rates above should be read as a lower bound under a demanding standard rather than as a defect rate. And a single labeller comparing against a single judge cannot separate "the judge is strict" from "the labeller is lenient"; only a second human could.
 
 ## Known limitations
 
@@ -475,5 +495,5 @@ Every figure above is one model's opinion of another model's output. A sample of
 - Synthesis results come from one run per provider. The SDK exposes no temperature control, so the numbers are not exactly reproducible; abstention decisions in particular could differ on a re-run.
 - Faithfulness is unmeasured. Citation correctness says a cited paper was relevant to the question, not that the claim follows from it.
 - Zero fabrication attempts in 24 calls is not evidence of a low fabrication rate.
-- Faithfulness verdicts come from a model judge whose agreement with a human has not yet been measured. The extractive control validates it on well-posed claims and shows an error rate of about 11% on title-only passages.
+- Faithfulness verdicts come from a model judge validated on 20 claims by one labeller, at kappa 0.184. Agreement is low and one-directional, so the strict rates are a lower bound under a demanding standard rather than a defect rate. A second labeller is the prerequisite for separating a strict judge from a lenient human.
 - The judge and the synthesizer under test are the same model family, which may bias verdicts in a direction the control cannot detect.

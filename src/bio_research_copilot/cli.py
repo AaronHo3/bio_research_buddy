@@ -46,6 +46,7 @@ from bio_research_copilot.application.evaluate_synthesis import (
 )
 from bio_research_copilot.application.judge_faithfulness import (
     FaithfulnessReport,
+    Worksheet,
     build_worksheet,
     judge_report,
 )
@@ -65,8 +66,11 @@ from bio_research_copilot.domain import (
     Source,
 )
 from bio_research_copilot.evaluation import (
+    AgreementReport,
     Benchmark,
     CorpusManifest,
+    compare_labels,
+    interpret_kappa,
     load_benchmark,
     load_manifest,
 )
@@ -366,6 +370,18 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     )
     faith.add_argument("--judge-model", default=None, help="Model used to judge.")
     faith.add_argument("--out", type=Path, default=None, help="Write the full JSON report here.")
+    faith.add_argument(
+        "--compare",
+        type=Path,
+        default=None,
+        help="A labelled worksheet. Compares it against a judged report and stops.",
+    )
+    faith.add_argument(
+        "--judged",
+        type=Path,
+        default=None,
+        help="The judged report to compare against, when using --compare.",
+    )
     return parser
 
 
@@ -717,6 +733,11 @@ def render_faithfulness_summary(report: FaithfulnessReport) -> str:
 
 
 def _cmd_judge_faithfulness(args: argparse.Namespace, runtime: Runtime) -> int:
+    # Comparison works on a worksheet and a judged report, so it never reads the
+    # synthesis report and must branch before that file is parsed.
+    if args.compare is not None:
+        return _compare_labels(args)
+
     if not args.report.exists():
         print(f"error: cannot read {args.report}: not found", file=sys.stderr)
         return EXIT_BAD_INPUT
@@ -742,6 +763,68 @@ def _cmd_judge_faithfulness(args: argparse.Namespace, runtime: Runtime) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_BAD_INPUT
     print(render_faithfulness_summary(report))
+    if args.out is not None:
+        _write_json(args.out, report.model_dump(mode="json"))
+        print(f"report written to {args.out}")
+    return EXIT_OK
+
+
+VERDICT_CATEGORIES = ("supported", "partially_supported", "unsupported")
+
+
+def render_agreement(report: AgreementReport, *, left: str, right: str) -> str:
+    lines = [
+        f"Agreement between {left} and {right} on {report.items} claims",
+        "",
+        f"  agreed on          {report.agreed} of {report.items}",
+        f"  raw agreement      {report.raw_agreement:.3f}",
+        f"  expected by chance {report.expected_agreement:.3f}",
+    ]
+    kappa = "undefined" if report.kappa is None else f"{report.kappa:.3f}"
+    lines += [
+        f"  Cohen's kappa      {kappa}  ({interpret_kappa(report.kappa)})",
+        "",
+        "Labels assigned",
+    ]
+    for category in VERDICT_CATEGORIES:
+        lines.append(
+            f"  {category:<21} {left} {report.left_counts[category]:>3}"
+            f"   {right} {report.right_counts[category]:>3}"
+        )
+    if report.disagreements:
+        lines += ["", f"Disagreements ({len(report.disagreements)})"]
+        lines += [
+            f"  {d.key:<8} {left}: {d.left:<21} {right}: {d.right}" for d in report.disagreements
+        ]
+    return NEWLINE.join(lines)
+
+
+def _compare_labels(args: argparse.Namespace) -> int:
+    judged_path = args.judged
+    if judged_path is None:
+        print("error: --compare needs --judged, the report to compare against", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    for path in (args.compare, judged_path):
+        if not path.exists():
+            print(f"error: cannot read {path}: not found", file=sys.stderr)
+            return EXIT_BAD_INPUT
+
+    sheet = Worksheet.model_validate_json(args.compare.read_text(encoding="utf-8"))
+    judged = FaithfulnessReport.model_validate_json(judged_path.read_text(encoding="utf-8"))
+
+    human = {item.key: item.verdict for item in sheet.items if item.verdict}
+    if len(human) < len(sheet.items):
+        missing = len(sheet.items) - len(human)
+        print(f"error: {missing} of {len(sheet.items)} items are unlabelled", file=sys.stderr)
+        return EXIT_BAD_INPUT
+
+    machine = {verdict.key: verdict.verdict for verdict in judged.verdicts}
+    try:
+        report = compare_labels(human, machine, categories=VERDICT_CATEGORIES)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    print(render_agreement(report, left="human", right="judge"))
     if args.out is not None:
         _write_json(args.out, report.model_dump(mode="json"))
         print(f"report written to {args.out}")

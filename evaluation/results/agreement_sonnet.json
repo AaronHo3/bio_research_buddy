@@ -1,0 +1,66 @@
+{
+  "items": 20,
+  "agreed": 14,
+  "raw_agreement": 0.7,
+  "expected_agreement": 0.6325,
+  "kappa": 0.18367346938775508,
+  "left_counts": {
+    "supported": 19,
+    "partially_supported": 1,
+    "unsupported": 0
+  },
+  "right_counts": {
+    "supported": 13,
+    "partially_supported": 6,
+    "unsupported": 1
+  },
+  "confusion": {
+    "supported": {
+      "supported": 13,
+      "partially_supported": 5,
+      "unsupported": 1
+    },
+    "partially_supported": {
+      "supported": 0,
+      "partially_supported": 1,
+      "unsupported": 0
+    },
+    "unsupported": {
+      "supported": 0,
+      "partially_supported": 0,
+      "unsupported": 0
+    }
+  },
+  "disagreements": [
+    {
+      "key": "q04:2",
+      "left": "supported",
+      "right": "unsupported"
+    },
+    {
+      "key": "q06:1",
+      "left": "supported",
+      "right": "partially_supported"
+    },
+    {
+      "key": "q06:4",
+      "left": "supported",
+      "right": "partially_supported"
+    },
+    {
+      "key": "q07:1",
+      "left": "supported",
+      "right": "partially_supported"
+    },
+    {
+      "key": "q07:2",
+      "left": "supported",
+      "right": "partially_supported"
+    },
+    {
+      "key": "q08:1",
+      "left": "supported",
+      "right": "partially_supported"
+    }
+  ]
+}

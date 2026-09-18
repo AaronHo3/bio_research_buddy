@@ -713,6 +713,88 @@ def test_evaluate_synthesis_missing_benchmark_is_exit_2(
     assert "not found" in capsys.readouterr().err
 
 
+def test_judge_faithfulness_compare_needs_a_judged_report(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sheet = tmp_path / "w.json"
+    sheet.write_text("{}", encoding="utf-8")
+    argv = ["judge-faithfulness", str(sheet), "--compare", str(sheet)]
+    assert run(argv, runtime(StubSource())) == EXIT_BAD_INPUT
+    assert "--judged" in capsys.readouterr().err
+
+
+def test_judge_faithfulness_refuses_an_unlabelled_worksheet(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A blank verdict is missing data; scoring it would invent agreement."""
+    sheet = tmp_path / "worksheet.json"
+    sheet.write_text(
+        json.dumps(
+            {
+                "synthesizer": "s",
+                "seed": 1,
+                "population": 2,
+                "instructions": [],
+                "items": [
+                    {"key": "q1:0", "claim": "A.", "passages": ["p"], "verdict": "supported"},
+                    {"key": "q1:1", "claim": "B.", "passages": ["p"], "verdict": ""},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    judged = tmp_path / "judged.json"
+    judged.write_text(
+        json.dumps(
+            {
+                "synthesizer": "s",
+                "judge": "j",
+                "generated_at": "2026-09-17T12:00:00Z",
+                "claims": 2,
+                "supported": 2,
+                "partially_supported": 0,
+                "unsupported": 0,
+                "strict_rate": 1.0,
+                "lenient_rate": 1.0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "by_type": {},
+                "verdicts": [
+                    {
+                        "key": "q1:0",
+                        "question_id": "q1",
+                        "question_type": "mechanism",
+                        "claim": "A.",
+                        "evidence_ids": ["pubmed:1:0"],
+                        "verdict": "supported",
+                        "reason": "r",
+                    },
+                    {
+                        "key": "q1:1",
+                        "question_id": "q1",
+                        "question_type": "mechanism",
+                        "claim": "B.",
+                        "evidence_ids": ["pubmed:1:1"],
+                        "verdict": "supported",
+                        "reason": "r",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    argv = [
+        "judge-faithfulness",
+        str(sheet),
+        "--compare",
+        str(sheet),
+        "--judged",
+        str(judged),
+    ]
+    assert run(argv, runtime(StubSource())) == EXIT_BAD_INPUT
+    assert "unlabelled" in capsys.readouterr().err
+
+
 def test_judge_lists_only_unjudged_questions(
     db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
