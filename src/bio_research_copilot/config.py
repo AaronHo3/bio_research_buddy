@@ -21,3 +21,4 @@ class Settings(BaseSettings):
     database_path: Path = Path("data/bio_copilot.sqlite")
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_cache_dir: Path | None = None
+    rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"

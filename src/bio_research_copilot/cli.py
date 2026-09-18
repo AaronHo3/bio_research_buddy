@@ -19,9 +19,14 @@ from pydantic import ValidationError
 
 from bio_research_copilot.adapters.embedding import EmbeddingError, EmbeddingModel
 from bio_research_copilot.adapters.fastembed_model import DEFAULT_MODEL, FastEmbedModel
+from bio_research_copilot.adapters.fastembed_reranker import (
+    DEFAULT_RERANK_MODEL,
+    FastEmbedReranker,
+)
 from bio_research_copilot.adapters.literature import LiteratureSource, LiteratureSourceError
 from bio_research_copilot.adapters.persistence import PaperRepository, PersistenceError
 from bio_research_copilot.adapters.pubmed import PubMedClient, parse_efetch_xml
+from bio_research_copilot.adapters.reranking import Reranker, RerankerError
 from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
 from bio_research_copilot.application import (
     EvaluationReport,
@@ -38,6 +43,7 @@ from bio_research_copilot.application.query import (
     build_bm25,
     build_dense,
     build_hybrid,
+    with_reranking,
 )
 from bio_research_copilot.config import Settings
 from bio_research_copilot.domain import Paper, RetrievedEvidence, SearchQuery, Source
@@ -66,6 +72,8 @@ class Runtime:
     default_db: Path
     build_embedding_model: Callable[[str], EmbeddingModel] = FastEmbedModel
     default_embedding_model: str = DEFAULT_MODEL
+    build_reranker: Callable[[str], Reranker] = FastEmbedReranker
+    default_rerank_model: str = DEFAULT_RERANK_MODEL
 
 
 def build_parser(default_db: Path) -> argparse.ArgumentParser:
@@ -142,6 +150,15 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
         help="Output format (default: json).",
     )
     query.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Reorder the shortlist with a cross-encoder (slower, usually better ordering).",
+    )
+    query.add_argument("--rerank-model", default=None, help="Cross-encoder model, for --rerank.")
+    query.add_argument(
+        "--rerank-pool", type=int, default=25, help="Candidates to rerank (default: 25)."
+    )
+    query.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
 
@@ -188,6 +205,15 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
         help="Retrieval method to score (default: bm25).",
     )
     evaluate.add_argument("--model", default=None, help="Embedding model, for dense and hybrid.")
+    evaluate.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Reorder the shortlist with a cross-encoder (slower, usually better ordering).",
+    )
+    evaluate.add_argument("--rerank-model", default=None, help="Cross-encoder model, for --rerank.")
+    evaluate.add_argument(
+        "--rerank-pool", type=int, default=25, help="Candidates to rerank (default: 25)."
+    )
     evaluate.add_argument("--out", type=Path, default=None, help="Write the full JSON report here.")
     evaluate.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
@@ -272,8 +298,17 @@ def _build_retriever_factory(args: argparse.Namespace, runtime: Runtime) -> Retr
     return lambda repository: build_dense(repository, model)
 
 
+def _retriever_factory(args: argparse.Namespace, runtime: Runtime) -> RetrieverFactory:
+    """The base method, optionally wrapped in a reranking stage."""
+    factory = _build_retriever_factory(args, runtime)
+    if not getattr(args, "rerank", False):
+        return factory
+    reranker = runtime.build_reranker(args.rerank_model or runtime.default_rerank_model)
+    return with_reranking(factory, reranker, pool=args.rerank_pool)
+
+
 def _cmd_query(args: argparse.Namespace, runtime: Runtime) -> int:
-    build = _build_retriever_factory(args, runtime)
+    build = _retriever_factory(args, runtime)
     with runtime.open_repository(args.db) as repository:
         evidence = query_passages(repository, args.question, args.k, build_retriever=build)
     if args.format == "table":
@@ -422,7 +457,7 @@ def _cmd_evaluate(args: argparse.Namespace, runtime: Runtime) -> int:
         print(f"error: cannot read {args.benchmark}: not found", file=sys.stderr)
         return EXIT_BAD_INPUT
     benchmark = load_benchmark(args.benchmark)
-    build = _build_retriever_factory(args, runtime)
+    build = _retriever_factory(args, runtime)
     with runtime.open_repository(args.db) as repository:
         report = evaluate_retrieval(repository, benchmark, k=args.k, build_retriever=build)
     print(render_evaluation_summary(report))
@@ -466,7 +501,7 @@ def run(argv: Sequence[str], runtime: Runtime) -> int:
         reasons = "; ".join(str(err["msg"]) for err in exc.errors())
         print(f"error: invalid input: {reasons}", file=sys.stderr)
         return EXIT_BAD_INPUT
-    except (LiteratureSourceError, PersistenceError, EmbeddingError) as exc:
+    except (LiteratureSourceError, PersistenceError, EmbeddingError, RerankerError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_DEPENDENCY_FAILED
 
@@ -501,6 +536,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 name, cache_dir=settings.embedding_cache_dir
             ),
             default_embedding_model=settings.embedding_model,
+            build_reranker=lambda name: FastEmbedReranker(
+                name, cache_dir=settings.embedding_cache_dir
+            ),
+            default_rerank_model=settings.rerank_model,
         )
         return run(sys.argv[1:] if argv is None else argv, runtime)
 

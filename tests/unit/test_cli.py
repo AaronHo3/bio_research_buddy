@@ -28,7 +28,7 @@ from bio_research_copilot.cli import (
     run,
 )
 from bio_research_copilot.domain import Paper, SearchQuery, Source
-from tests.unit.fakes import FakeEmbeddingModel, failing_model
+from tests.unit.fakes import FakeEmbeddingModel, FakeReranker, failing_model, failing_reranker
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 RECORDED_PAPERS = parse_efetch_xml((FIXTURES / "pubmed" / "efetch_crispr.xml").read_text("utf-8"))
@@ -54,15 +54,21 @@ def db(tmp_path: Path) -> Path:
 
 
 def runtime(
-    source: StubSource, db: Path | None = None, model: FakeEmbeddingModel | None = None
+    source: StubSource,
+    db: Path | None = None,
+    model: FakeEmbeddingModel | None = None,
+    reranker: FakeReranker | None = None,
 ) -> Runtime:
     model = model or FakeEmbeddingModel()
+    reranker = reranker or FakeReranker()
     return Runtime(
         source=source,
         open_repository=SqliteRepository.open,
         default_db=db or Path("unused.sqlite"),
         build_embedding_model=lambda name: model,
         default_embedding_model=model.name,
+        build_reranker=lambda name: reranker,
+        default_rerank_model=reranker.name,
     )
 
 
@@ -363,6 +369,55 @@ def test_evaluate_hybrid_is_recorded_in_the_report(
     argv = ["evaluate", str(BENCHMARK_DIR), "--method", "hybrid", "--k", "5", "--db", str(db)]
     assert run(argv, rt) == EXIT_OK
     assert "retriever rrf(bm25-v1+dense:fake-v1)" in capsys.readouterr().out
+
+
+def test_rerank_flag_wraps_whichever_method_was_chosen(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    argv = ["query", "CRISPR", "--rerank", "--k", "2", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
+    evidence = json.loads(capsys.readouterr().out)
+    assert evidence[0]["method"] == "rerank:fake-rerank-v1(bm25-v1)"
+    # Both stages' scores are kept, so a regression can be traced to either.
+    assert "bm25" in evidence[0]["components"]
+    assert "rerank:fake-rerank-v1" in evidence[0]["components"]
+
+
+def test_rerank_composes_with_hybrid(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    run(["embed", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    argv = ["query", "CRISPR", "--method", "hybrid", "--rerank", "--k", "2", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
+    evidence = json.loads(capsys.readouterr().out)
+    assert evidence[0]["method"] == "rerank:fake-rerank-v1(rrf(bm25-v1+dense:fake-v1))"
+
+
+def test_rerank_failure_is_exit_1(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db, reranker=failing_reranker("no reranker"))
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert run(["query", "CRISPR", "--rerank", "--db", str(db)], rt) == EXIT_DEPENDENCY_FAILED
+    captured = capsys.readouterr()
+    assert captured.err == "error: no reranker\n"
+    assert "Traceback" not in captured.err
+
+
+def test_evaluate_records_the_reranked_method(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(), db=db)
+    run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+
+    argv = ["evaluate", str(BENCHMARK_DIR), "--rerank", "--k", "5", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
+    assert "retriever rerank:fake-rerank-v1(bm25-v1)" in capsys.readouterr().out
 
 
 def test_query_defaults_to_the_lexical_baseline(

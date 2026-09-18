@@ -11,11 +11,11 @@ bio-copilot search "<question>" --limit N --format json|table
 bio-copilot ingest "<question>" --limit N [--db PATH]
 bio-copilot show <source_id> [--source pubmed] [--db PATH]
 bio-copilot passages <source_id> [--source pubmed] [--db PATH]
-bio-copilot query "<question>" --k N [--method bm25|dense|hybrid] [--format json|table] [--db PATH]
+bio-copilot query "<question>" --k N [--method bm25|dense|hybrid] [--rerank] [--format json|table] [--db PATH]
 bio-copilot load-corpus <efetch.xml> [--db PATH]
 bio-copilot judge <benchmark_dir> [--scope topic|pool] [--db PATH]
 bio-copilot embed [--model NAME] [--batch-size N] [--db PATH]
-bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense|hybrid] [--out report.json] [--db PATH]
+bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense|hybrid] [--rerank] [--out report.json] [--db PATH]
   -> cli.py                     composition root: Settings -> httpx.Client, PubMedClient, SqliteRepository
   -> application/search.py      search_papers(source, question, max_results)
   -> application/ingest.py      ingest_papers(source, repository, ...) -> upsert, chunk, record -> IngestReport
@@ -31,6 +31,8 @@ bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense|hybrid] [--out
   -> retrieval/bm25.py          BM25Index ("bm25-v1"): in-memory index built from stored passages
   -> retrieval/dense.py         DenseIndex ("dense:<model>"): exact cosine similarity over stored vectors
   -> retrieval/fusion.py        ReciprocalRankFusion ("rrf(a+b)"): combines rankings by position
+  -> retrieval/rerank.py        RerankingRetriever: cross-encoder reorders a shortlist, never adds to it
+  -> adapters/reranking.py      Reranker protocol; fastembed_reranker.py runs a local ONNX cross-encoder
   -> adapters/literature.py     LiteratureSource protocol + typed error hierarchy
   -> adapters/pubmed.py         esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
   -> adapters/resilience.py     RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
@@ -61,7 +63,7 @@ Boundary enforcement is tested: `domain/` imports no adapter code and `applicati
 
 Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
 
-Not yet implemented: pagination, reranking, synthesis, API, UI.
+Not yet implemented: pagination, synthesis, API, UI.
 
 ## Initial vertical slice
 
@@ -164,9 +166,17 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - Consequence: scale-free and robust, at the cost of discarding magnitude. An overwhelming match and a marginal one are indistinguishable if they share a rank.
 - Measured: fusion took the best precision and recall at k=10 and did not improve ranking quality. MRR stayed at dense retrieval's 0.870 rather than the baseline's 0.944, and did not move across any fusion constant tested. Fusion improves the candidate set and cannot order it, which is the case for adding a reranker rather than tuning the fusion further.
 
+### ADR-012: Reranking is an opt-in stage, not part of the default path
+
+- Context: fusion improved the candidate set without improving its order, which pointed at a cross-encoder reranker. A cross-encoder reads the query and a passage together in one pass, so unlike the bi-encoders it cannot precompute anything and costs one model call per candidate.
+- Choice: `RerankingRetriever` wraps any other retriever and is enabled with `--rerank`, off by default. It reorders a shortlist and can never add to it, so the wrapped retriever's recall at the shortlist depth bounds what it can achieve.
+- Measured, and against the prediction: this reranker made ranking worse. nDCG at k=10 fell from 0.826 to 0.782 and MRR from 0.944 to 0.852, at roughly four thousand times the latency. It gave the best mechanism-question ranking in the project and the worst comparison-question ranking, which points at a domain mismatch: the model is trained on short web-search queries, not long questions over biomedical abstracts.
+- It did contribute one thing decisively. Answerable and unanswerable questions separate by a sign change rather than by a margin on an arbitrary scale, which is a far stronger basis for abstention than either retriever offers.
+- Consequence: kept, off by default, and reported honestly as a negative result for ordering and a positive one for abstention. The next experiment is a cross-encoder trained on biomedical literature, which tests the domain explanation directly.
+
 ## Open decisions
 
-- Reranking model, and whether reranking is warranted at all.
+- Whether a biomedical cross-encoder reverses the reranking result; the general-domain one did not help ordering.
 - LLM provider or local model.
 - Frontend framework and deployment target.
 

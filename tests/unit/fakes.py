@@ -2,8 +2,10 @@
 
 import hashlib
 import math
+from collections.abc import Callable
 
 from bio_research_copilot.adapters.embedding import EmbeddingError
+from bio_research_copilot.adapters.reranking import RerankerError
 
 
 class FakeClock:
@@ -62,3 +64,34 @@ def failing_model(message: str = "model unavailable") -> FakeEmbeddingModel:
     model = FakeEmbeddingModel()
     model.fail_with = EmbeddingError(message)
     return model
+
+
+class FakeReranker:
+    """Scores by a caller-supplied rule, so reordering is predictable.
+
+    The default rule scores by text length, which is arbitrary on purpose: these
+    tests check that the wrapper reorders by whatever the reranker says, not
+    that any particular ordering is correct.
+    """
+
+    def __init__(
+        self,
+        name: str = "fake-rerank-v1",
+        rule: Callable[[str], float] | None = None,
+    ) -> None:
+        self.name = name
+        self.rule = rule or (lambda text: float(len(text)))
+        self.calls: list[tuple[str, list[str]]] = []
+        self.fail_with: Exception | None = None
+
+    def score(self, query: str, texts: list[str]) -> list[float]:
+        if self.fail_with:
+            raise self.fail_with
+        self.calls.append((query, list(texts)))
+        return [self.rule(text) for text in texts]
+
+
+def failing_reranker(message: str = "reranker unavailable") -> FakeReranker:
+    reranker = FakeReranker()
+    reranker.fail_with = RerankerError(message)
+    return reranker

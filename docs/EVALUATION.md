@@ -254,9 +254,60 @@ Three things to read from this.
 
 **These numbers must not be used to pick a value.** Nine questions with no held-out split means a constant chosen from this table is fitted to this benchmark and would not be expected to transfer. The default is reported as the headline result for that reason. Selecting a constant honestly needs a larger question set split into development and test halves, which is the clearest argument for growing the benchmark.
 
+## Reranking
+
+Retriever `rerank:Xenova/ms-marco-MiniLM-L-6-v2(...)`. A cross-encoder reads the question and each candidate together and reorders a shortlist of 25. Unlike the other methods it cannot add or remove candidates, only reorder them.
+
+| Metric | BM25 | Hybrid | + rerank |
+|---|---|---|---|
+| precision@10 | 0.467 | 0.478 | **0.478** |
+| recall@10 | **0.837** | 0.846 | 0.829 |
+| MRR | **0.944** | 0.870 | 0.852 |
+| nDCG@10 | **0.826** | 0.812 | 0.782 |
+| nDCG@5 | 0.760 | 0.759 | 0.747 |
+| latency (ms) | **0.2** | 3.5 | 1142 |
+
+### The reranker made ranking worse, and that prediction was wrong
+
+The fusion analysis concluded that fusion assembles a candidate set and something else must order it, and named reranking as that something. Measured, this reranker orders it worse. nDCG at k=10 falls from 0.826 to 0.782 and MRR from 0.944 to 0.852. The hypothesis was reasonable and the result does not support it.
+
+### It is not uniformly worse, and the split is informative
+
+| Type, k=5 | BM25 nDCG | Dense nDCG | Reranked nDCG |
+|---|---|---|---|
+| mechanism | 0.897 | 0.848 | **0.925** |
+| target | **0.791** | 0.766 | 0.766 |
+| comparison | 0.592 | **0.741** | 0.549 |
+
+Reranking produces the best mechanism-question ranking measured anywhere in this project, with a perfect reciprocal rank on all three. It also produces the worst comparison-question ranking measured anywhere, below the lexical baseline it was meant to improve.
+
+The likely cause is domain. This cross-encoder is trained on web search: short queries against short passages of general text. The questions here are long and technical and the passages are dense biomedical abstracts. A question phrased as a direct information need ("what mechanisms cause X") resembles its training data; one that asks for two things to be weighed against each other does not. That is a testable explanation, and the obvious test is a cross-encoder trained on biomedical literature.
+
+### The first stage stopped mattering
+
+Reranking a lexical shortlist and reranking a fused shortlist produce identical scores on every metric. The shortlists are not identical: at depth 25 they differ by four to twelve passages per question. Those differences simply never reach the top ten after reranking, because they are passages the cross-encoder rates poorly.
+
+At this corpus size a shortlist of 25 is nearly a fifth of all 135 passages, so both first stages already contain essentially every passage worth ranking. The measured advantage of fusion disappears the moment a reranker runs behind it. That result is a property of a small corpus and should not be expected to survive at scale, where a shortlist is a vanishing fraction of the whole.
+
+### The abstention signal is dramatically better
+
+| Retriever | Lowest answerable | Highest unanswerable | Gap |
+|---|---|---|---|
+| BM25 | 8.202 | 4.140 | 4.062 |
+| Dense | 0.845 | 0.657 | 0.188 |
+| Reranked | +2.857 | -5.170 | 8.027 |
+
+The cross-encoder separates answerable from unanswerable questions by a sign change. Every answerable question scores positive and every unanswerable one scores negative, with no near misses. The other methods separate them only by a margin on an arbitrary scale.
+
+This is the most useful thing reranking contributed. A stage that orders results worse but knows far better whether any of them are worth showing is still worth having, and abstention is a Stage 5 requirement.
+
+### Cost
+
+Roughly one second per query against a fifth of a millisecond for the lexical baseline, about four thousand times slower. Cost is one model call per candidate, so it scales with shortlist depth rather than corpus size. For a user-facing query that is noticeable but acceptable; for an evaluation sweep across many configurations it is the dominant cost.
+
 ### Target to beat
 
-Coverage: 0.846 recall at k=10, against a 0.890 ceiling that fusing deeper could approach. Ordering: 0.944 MRR from the lexical baseline, which no fused configuration has matched.
+Coverage: 0.846 recall at k=10, against a 0.890 ceiling that fusing deeper could approach. Ordering: 0.944 MRR and 0.826 nDCG at k=10 from the lexical baseline, which nothing since has matched. Reranking's contribution so far is abstention, not ordering.
 
 ## Known limitations
 

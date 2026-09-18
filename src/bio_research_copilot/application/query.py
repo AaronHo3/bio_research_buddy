@@ -9,8 +9,16 @@ from collections.abc import Callable
 
 from bio_research_copilot.adapters.embedding import EmbeddingError, EmbeddingModel
 from bio_research_copilot.adapters.persistence import PaperRepository
+from bio_research_copilot.adapters.reranking import Reranker
 from bio_research_copilot.domain import RetrievedEvidence, SearchQuery
-from bio_research_copilot.retrieval import BM25Index, DenseIndex, ReciprocalRankFusion, Retriever
+from bio_research_copilot.retrieval import (
+    BM25Index,
+    DenseIndex,
+    ReciprocalRankFusion,
+    RerankingRetriever,
+    Retriever,
+)
+from bio_research_copilot.retrieval.rerank import DEFAULT_POOL as DEFAULT_RERANK_POOL
 
 RetrieverFactory = Callable[[PaperRepository], Retriever]
 
@@ -42,6 +50,13 @@ def build_dense(repository: PaperRepository, model: EmbeddingModel) -> Retriever
 def build_hybrid(repository: PaperRepository, model: EmbeddingModel) -> Retriever:
     """Fuse the lexical and dense rankings. Requires vectors, like ``build_dense``."""
     return ReciprocalRankFusion([build_bm25(repository), build_dense(repository, model)])
+
+
+def with_reranking(
+    factory: RetrieverFactory, reranker: Reranker, *, pool: int = DEFAULT_RERANK_POOL
+) -> RetrieverFactory:
+    """Wrap any retriever factory so a cross-encoder reorders its shortlist."""
+    return lambda repository: RerankingRetriever(factory(repository), reranker, pool=pool)
 
 
 def query_passages(
