@@ -200,13 +200,68 @@ Both remain separable on this benchmark, so an abstention threshold stays viable
 
 Dense retrieval is about sixteen times slower per query, and both are far below anything a user would notice. The dense figure includes embedding the query, which is the dominant term; the similarity computation itself is one matrix multiply. The real cost is the one-time embedding of the corpus, about eight seconds for 135 passages.
 
+## Hybrid retrieval
+
+Retriever `rrf(bm25-v1+dense:BAAI/bge-small-en-v1.5)`. Both rankings are read 50 deep and combined by reciprocal rank fusion with the conventional constant of 60.
+
+| Metric | BM25 | Dense | Hybrid |
+|---|---|---|---|
+| precision@10 | 0.467 | 0.444 | **0.478** |
+| recall@10 | 0.837 | 0.787 | **0.846** |
+| MRR | **0.944** | 0.870 | 0.870 |
+| nDCG@10 | **0.826** | 0.776 | 0.812 |
+| nDCG@5 | 0.760 | **0.785** | 0.759 |
+
+### Fusion improves coverage, not ordering
+
+Hybrid takes the best precision and the best recall at k=10 and does not take the best ranking quality. Reciprocal rank fusion rewards agreement between retrievers. When both agree, the result is confidently placed. When they disagree, which is exactly when one of them is right and the other is wrong, fusion splits the difference and promotes a compromise.
+
+That shows up most clearly in MRR, which lands on dense retrieval's 0.870 rather than the baseline's 0.944. Fusion inherits the worse method's mistakes at rank one without inheriting the better method's successes there. It has no way to know which retriever to trust on a given query.
+
+Counting nDCG wins per question at k=10: the lexical baseline takes five, hybrid two, dense two.
+
+This is the argument for reranking, and it is why production retrieval stacks put a reranker after fusion rather than treating fusion as the finished article. Fusion assembles a better candidate set; something else has to order it.
+
+### Hybrid does not reach the union ceiling
+
+| | mean recall@10 |
+|---|---|
+| BM25 | 0.837 |
+| Dense | 0.787 |
+| Hybrid | 0.846 |
+| Either, unfused | 0.890 |
+
+The union of two top-ten lists holds up to twenty papers, and only ten survive fusion. The gap between 0.846 and 0.890 is the price of compressing them back into one list of the same length. Fusing deeper and reranking the result is the way to close it.
+
+### Sensitivity to the fusion constant
+
+The constant flattens the curve near the top: a larger value makes rank position matter less and agreement matter more. Varying it, with everything else fixed:
+
+| Constant | recall@10 | nDCG@10 | MRR | nDCG@5 |
+|---|---|---|---|---|
+| 1 | 0.857 | 0.830 | 0.870 | 0.811 |
+| 5 | 0.857 | 0.827 | 0.870 | 0.808 |
+| 10 | 0.857 | 0.825 | 0.870 | 0.793 |
+| 20 | 0.848 | 0.814 | 0.870 | 0.773 |
+| 60 (default) | 0.846 | 0.812 | 0.870 | 0.759 |
+| 200 | 0.846 | 0.811 | 0.870 | 0.759 |
+
+Three things to read from this.
+
+**Smaller is better on this corpus, consistently.** At a constant of one, hybrid beats every other configuration on every metric except MRR, including the lexical baseline's nDCG. The conventional value of 60 comes from work fusing much deeper candidate lists than 135 passages, where flattening the top is appropriate. Here it discards useful rank information.
+
+**MRR does not move at all.** Every constant gives 0.870. Whatever the weighting, fusion picks the same thing first. This is the strongest evidence that the ranking problem is structural rather than a tuning problem, and that a reranker rather than a better constant is what fixes it.
+
+**These numbers must not be used to pick a value.** Nine questions with no held-out split means a constant chosen from this table is fitted to this benchmark and would not be expected to transfer. The default is reported as the headline result for that reason. Selecting a constant honestly needs a larger question set split into development and test halves, which is the clearest argument for growing the benchmark.
+
 ### Target to beat
 
-Hybrid retrieval has to beat 0.837 recall and 0.826 nDCG at k=10, and 0.785 nDCG at k=5. Union recall of 0.890 is the ceiling fusion can reach without a better underlying retriever.
+Coverage: 0.846 recall at k=10, against a 0.890 ceiling that fusing deeper could approach. Ordering: 0.944 MRR from the lexical baseline, which no fused configuration has matched.
 
 ## Known limitations
 
 - 12 questions is enough to catch gross regressions and to support an error analysis, not to claim statistically significant differences between retrievers.
 - Single judge, so no inter-annotator agreement.
+- No development and test split, so no hyperparameter (such as the fusion constant) can be selected without overfitting. Growing the question set is the prerequisite for tuning anything.
 - Judging is exhaustive within a topic but assumes no cross-topic relevance.
 - Titles and abstracts only; full-text relevance is out of scope.

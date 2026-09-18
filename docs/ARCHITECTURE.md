@@ -11,11 +11,11 @@ bio-copilot search "<question>" --limit N --format json|table
 bio-copilot ingest "<question>" --limit N [--db PATH]
 bio-copilot show <source_id> [--source pubmed] [--db PATH]
 bio-copilot passages <source_id> [--source pubmed] [--db PATH]
-bio-copilot query "<question>" --k N [--method bm25|dense] [--format json|table] [--db PATH]
+bio-copilot query "<question>" --k N [--method bm25|dense|hybrid] [--format json|table] [--db PATH]
 bio-copilot load-corpus <efetch.xml> [--db PATH]
 bio-copilot judge <benchmark_dir> [--scope topic|pool] [--db PATH]
 bio-copilot embed [--model NAME] [--batch-size N] [--db PATH]
-bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense] [--out report.json] [--db PATH]
+bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense|hybrid] [--out report.json] [--db PATH]
   -> cli.py                     composition root: Settings -> httpx.Client, PubMedClient, SqliteRepository
   -> application/search.py      search_papers(source, question, max_results)
   -> application/ingest.py      ingest_papers(source, repository, ...) -> upsert, chunk, record -> IngestReport
@@ -30,6 +30,7 @@ bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense] [--out report
   -> retrieval/tokenize.py      lower-case, alphanumeric split, stopwords, no stemming
   -> retrieval/bm25.py          BM25Index ("bm25-v1"): in-memory index built from stored passages
   -> retrieval/dense.py         DenseIndex ("dense:<model>"): exact cosine similarity over stored vectors
+  -> retrieval/fusion.py        ReciprocalRankFusion ("rrf(a+b)"): combines rankings by position
   -> adapters/literature.py     LiteratureSource protocol + typed error hierarchy
   -> adapters/pubmed.py         esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
   -> adapters/resilience.py     RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
@@ -60,7 +61,7 @@ Boundary enforcement is tested: `domain/` imports no adapter code and `applicati
 
 Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
 
-Not yet implemented: pagination, hybrid fusion of lexical and dense rankings, reranking, synthesis, API, UI.
+Not yet implemented: pagination, reranking, synthesis, API, UI.
 
 ## Initial vertical slice
 
@@ -154,6 +155,14 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - Choice: keep both behind `--method` and fuse them next, rather than adopting either as the single retriever.
 - Evidence: the union of the two retrievers' top ten reaches 0.890 mean recall against 0.837 for the better one alone. They fail on different questions, which is the condition under which fusion helps.
 - Consequence: two indexes are built per query instead of one, and the fusion needs its own evaluation. Replacing the baseline with embeddings, the obvious move, would have made this benchmark worse at k=10.
+
+### ADR-011: Reciprocal rank fusion rather than score normalisation
+
+- Context: hybrid retrieval must combine a lexical ranking with a dense one. BM25 scores are unbounded and corpus-dependent (roughly 8 to 20 here); cosine similarity lives in [-1, 1]. They cannot be added directly.
+- Choice: fuse on rank position. A passage scores `weight / (constant + rank)` summed over the retrievers that returned it, read 50 deep before fusing.
+- Alternatives: normalise each retriever's scores per query and take a weighted sum. That makes a passage's score depend on which other passages came back, so adding one document to the corpus can reorder unrelated results. Learning a combination needs training data the project does not have.
+- Consequence: scale-free and robust, at the cost of discarding magnitude. An overwhelming match and a marginal one are indistinguishable if they share a rank.
+- Measured: fusion took the best precision and recall at k=10 and did not improve ranking quality. MRR stayed at dense retrieval's 0.870 rather than the baseline's 0.944, and did not move across any fusion constant tested. Fusion improves the candidate set and cannot order it, which is the case for adding a reranker rather than tuning the fusion further.
 
 ## Open decisions
 

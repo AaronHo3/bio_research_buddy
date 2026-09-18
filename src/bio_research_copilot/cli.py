@@ -33,7 +33,12 @@ from bio_research_copilot.application import (
     search_papers,
 )
 from bio_research_copilot.application.evaluate import collapse_to_papers
-from bio_research_copilot.application.query import RetrieverFactory, build_bm25, build_dense
+from bio_research_copilot.application.query import (
+    RetrieverFactory,
+    build_bm25,
+    build_dense,
+    build_hybrid,
+)
 from bio_research_copilot.config import Settings
 from bio_research_copilot.domain import Paper, RetrievedEvidence, SearchQuery, Source
 from bio_research_copilot.evaluation import (
@@ -125,11 +130,11 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     query.add_argument("--k", type=int, default=5, help="Number of passages (default: 5).")
     query.add_argument(
         "--method",
-        choices=("bm25", "dense"),
+        choices=("bm25", "dense", "hybrid"),
         default="bm25",
         help="Retrieval method (default: bm25, the lexical baseline).",
     )
-    query.add_argument("--model", default=None, help="Embedding model, for --method dense.")
+    query.add_argument("--model", default=None, help="Embedding model, for dense and hybrid.")
     query.add_argument(
         "--format",
         choices=("json", "table"),
@@ -178,11 +183,11 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     evaluate.add_argument("--k", type=int, default=10, help="Cut-off for metrics (default: 10).")
     evaluate.add_argument(
         "--method",
-        choices=("bm25", "dense"),
+        choices=("bm25", "dense", "hybrid"),
         default="bm25",
         help="Retrieval method to score (default: bm25).",
     )
-    evaluate.add_argument("--model", default=None, help="Embedding model, for --method dense.")
+    evaluate.add_argument("--model", default=None, help="Embedding model, for dense and hybrid.")
     evaluate.add_argument("--out", type=Path, default=None, help="Write the full JSON report here.")
     evaluate.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
@@ -259,9 +264,11 @@ def render_evidence_table(evidence: list[RetrievedEvidence]) -> str:
 
 def _build_retriever_factory(args: argparse.Namespace, runtime: Runtime) -> RetrieverFactory:
     """Turn --method and --model into the factory the use cases expect."""
-    if args.method != "dense":
+    if args.method == "bm25":
         return build_bm25
     model = runtime.build_embedding_model(args.model or runtime.default_embedding_model)
+    if args.method == "hybrid":
+        return lambda repository: build_hybrid(repository, model)
     return lambda repository: build_dense(repository, model)
 
 

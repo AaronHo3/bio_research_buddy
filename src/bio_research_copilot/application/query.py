@@ -10,7 +10,7 @@ from collections.abc import Callable
 from bio_research_copilot.adapters.embedding import EmbeddingError, EmbeddingModel
 from bio_research_copilot.adapters.persistence import PaperRepository
 from bio_research_copilot.domain import RetrievedEvidence, SearchQuery
-from bio_research_copilot.retrieval import BM25Index, DenseIndex, Retriever
+from bio_research_copilot.retrieval import BM25Index, DenseIndex, ReciprocalRankFusion, Retriever
 
 RetrieverFactory = Callable[[PaperRepository], Retriever]
 
@@ -37,6 +37,11 @@ def build_dense(repository: PaperRepository, model: EmbeddingModel) -> Retriever
         )
         raise EmbeddingError(msg)
     return DenseIndex([(p, vectors[p.chunk_id]) for p in passages], model)
+
+
+def build_hybrid(repository: PaperRepository, model: EmbeddingModel) -> Retriever:
+    """Fuse the lexical and dense rankings. Requires vectors, like ``build_dense``."""
+    return ReciprocalRankFusion([build_bm25(repository), build_dense(repository, model)])
 
 
 def query_passages(

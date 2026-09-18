@@ -326,6 +326,45 @@ def test_query_dense_without_embeddings_is_exit_1(
     assert "bio-copilot embed" in err
 
 
+def test_query_hybrid_fuses_both_methods(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    run(["embed", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    argv = ["query", "CRISPR", "--method", "hybrid", "--k", "3", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
+    evidence = json.loads(capsys.readouterr().out)
+    assert evidence[0]["method"] == "rrf(bm25-v1+dense:fake-v1)"
+    assert set(evidence[0]["components"]) <= {"bm25-v1", "dense:fake-v1"}
+    assert evidence[0]["score"] == pytest.approx(sum(evidence[0]["components"].values()))
+
+
+def test_query_hybrid_without_embeddings_is_exit_1(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    code = run(["query", "CRISPR", "--method", "hybrid", "--db", str(db)], rt)
+    assert code == EXIT_DEPENDENCY_FAILED
+    assert "have no vector" in capsys.readouterr().err
+
+
+def test_evaluate_hybrid_is_recorded_in_the_report(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(), db=db)
+    run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
+    run(["embed", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    argv = ["evaluate", str(BENCHMARK_DIR), "--method", "hybrid", "--k", "5", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
+    assert "retriever rrf(bm25-v1+dense:fake-v1)" in capsys.readouterr().out
+
+
 def test_query_defaults_to_the_lexical_baseline(
     db: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
