@@ -296,6 +296,62 @@ def test_query_with_no_match_prints_empty_list(
     assert capsys.readouterr().out == "[]\n"
 
 
+def test_query_dense_method_uses_stored_vectors(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    run(["embed", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert run(["query", "CRISPR", "--method", "dense", "--k", "3", "--db", str(db)], rt) == EXIT_OK
+    evidence = json.loads(capsys.readouterr().out)
+    assert len(evidence) == 3
+    assert evidence[0]["method"] == "dense:fake-v1"
+    assert "cosine" in evidence[0]["components"]
+
+
+def test_query_dense_without_embeddings_is_exit_1(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert (
+        run(["query", "CRISPR", "--method", "dense", "--db", str(db)], rt) == EXIT_DEPENDENCY_FAILED
+    )
+    err = capsys.readouterr().err
+    assert "have no vector" in err
+    assert "bio-copilot embed" in err
+
+
+def test_query_defaults_to_the_lexical_baseline(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    run(["query", "CRISPR", "--k", "1", "--db", str(db)], rt)
+    assert json.loads(capsys.readouterr().out)[0]["method"] == "bm25-v1"
+
+
+def test_evaluate_dense_method_is_recorded_in_the_report(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(), db=db)
+    run(["load-corpus", str(BENCHMARK_DIR / "corpus.xml"), "--db", str(db)], rt)
+    run(["embed", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    code = run(
+        ["evaluate", str(BENCHMARK_DIR), "--method", "dense", "--k", "5", "--db", str(db)], rt
+    )
+    assert code == EXIT_OK
+    assert "retriever dense:fake-v1" in capsys.readouterr().out
+
+
 def test_query_blank_question_is_exit_2(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert run(["query", "  ", "--db", str(db)], runtime(StubSource())) == EXIT_BAD_INPUT
     assert capsys.readouterr().err.startswith("error: invalid input:")

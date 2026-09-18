@@ -11,11 +11,11 @@ bio-copilot search "<question>" --limit N --format json|table
 bio-copilot ingest "<question>" --limit N [--db PATH]
 bio-copilot show <source_id> [--source pubmed] [--db PATH]
 bio-copilot passages <source_id> [--source pubmed] [--db PATH]
-bio-copilot query "<question>" --k N [--format json|table] [--db PATH]
+bio-copilot query "<question>" --k N [--method bm25|dense] [--format json|table] [--db PATH]
 bio-copilot load-corpus <efetch.xml> [--db PATH]
 bio-copilot judge <benchmark_dir> [--scope topic|pool] [--db PATH]
 bio-copilot embed [--model NAME] [--batch-size N] [--db PATH]
-bio-copilot evaluate <benchmark_dir> [--k N] [--out report.json] [--db PATH]
+bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense] [--out report.json] [--db PATH]
   -> cli.py                     composition root: Settings -> httpx.Client, PubMedClient, SqliteRepository
   -> application/search.py      search_papers(source, question, max_results)
   -> application/ingest.py      ingest_papers(source, repository, ...) -> upsert, chunk, record -> IngestReport
@@ -29,6 +29,7 @@ bio-copilot evaluate <benchmark_dir> [--k N] [--out report.json] [--db PATH]
   -> adapters/fastembed_model.py  local ONNX encoder, no PyTorch, offline after first download
   -> retrieval/tokenize.py      lower-case, alphanumeric split, stopwords, no stemming
   -> retrieval/bm25.py          BM25Index ("bm25-v1"): in-memory index built from stored passages
+  -> retrieval/dense.py         DenseIndex ("dense:<model>"): exact cosine similarity over stored vectors
   -> adapters/literature.py     LiteratureSource protocol + typed error hierarchy
   -> adapters/pubmed.py         esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
   -> adapters/resilience.py     RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
@@ -49,6 +50,8 @@ Embeddings: vectors are stored per passage per model, as packed float32 blobs ke
 
 Re-ingesting a paper updates its surviving passages in place instead of deleting and reinserting them, so their vectors survive; only a passage that genuinely disappears is deleted, and its vectors cascade away with it. Without that, every re-ingest would discard the whole corpus of vectors.
 
+Retrieval methods share one `Retriever` protocol and are selected with `--method`, so the evaluation command scores any of them unchanged. A retriever is built from the repository per call. The lexical index reads passages; the dense index reads passages paired with their stored vectors and refuses to run on a partially embedded corpus, because silently searching part of it would understate recall.
+
 Evaluation: `evaluation/benchmark_v1/` holds a committed 60-paper PubMed snapshot, a manifest, and 12 questions with paper-level judgments. `load-corpus` stores the snapshot offline, `judge` prints pooled candidates for the human judge, and `evaluate` scores a retriever and writes a JSON report with per-question rankings. See `docs/EVALUATION.md`.
 
 Observed in live use: PubMed's relevance sort is not stable across identical calls made seconds apart. Two consecutive ingests of the same question returned overlapping but different top-3 sets. Determinism holds for a given response, not for the live service; the evaluation set in Stage 3 must therefore be built from stored records, not re-fetched each run.
@@ -57,7 +60,7 @@ Boundary enforcement is tested: `domain/` imports no adapter code and `applicati
 
 Transient failures (timeouts, connection errors, HTTP 429/5xx) are retried up to 3 times with 0.5 s, 1 s backoff; requests are paced to 3/s without an NCBI key and 10/s with one. Clock and sleep are injected so tests assert exact delays without waiting.
 
-Not yet implemented: pagination, dense and hybrid retrieval over the stored vectors, synthesis, API, UI.
+Not yet implemented: pagination, hybrid fusion of lexical and dense rankings, reranking, synthesis, API, UI.
 
 ## Initial vertical slice
 
@@ -137,6 +140,20 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - Alternatives: a hosted API costs money per call, needs a key and a network at query time, and lets the provider change the model underneath a recorded evaluation result; PyTorch is roughly 2 GB installed and slows CI noticeably.
 - Consequence: free, offline after the first download, and reproducible, so a benchmark number stays valid indefinitely. Embedding all 135 benchmark passages takes about 8 seconds. Adding NCBI's MedCPT for the domain comparison will require PyTorch, which will be an optional dependency group rather than a default one.
 - The port splits passage and query embedding because retrieval models are often asymmetric: some prepend an instruction to queries, and MedCPT ships two separate encoders. A single method would force those providers to guess, and guessing wrong degrades retrieval silently.
+
+### ADR-009: Exact brute-force vector search rather than an approximate index
+
+- Context: dense retrieval needs nearest-neighbour search over the stored vectors.
+- Choice: normalise every stored vector once at construction, then score a query with a single matrix multiply against all of them. Exact, and about 3 ms per query at 135 passages, most of which is embedding the query rather than the search.
+- Alternatives: an approximate index such as HNSW, or a dedicated vector database. Both trade recall for speed and add a dependency or a service.
+- Consequence: recall is exact, so a benchmark number reflects the retrieval method and not an index's approximation error. Nothing is added to the deployment. When the corpus outgrows brute force, an approximate index becomes another `Retriever` and the benchmark measures what the approximation costs.
+
+### ADR-010: Keep both retrievers rather than replacing the baseline
+
+- Context: after measuring, dense retrieval beat the lexical baseline at k=5 and lost to it at k=10, winning three of nine questions on nDCG and losing six.
+- Choice: keep both behind `--method` and fuse them next, rather than adopting either as the single retriever.
+- Evidence: the union of the two retrievers' top ten reaches 0.890 mean recall against 0.837 for the better one alone. They fail on different questions, which is the condition under which fusion helps.
+- Consequence: two indexes are built per query instead of one, and the fusion needs its own evaluation. Replacing the baseline with embeddings, the obvious move, would have made this benchmark worse at k=10.
 
 ## Open decisions
 

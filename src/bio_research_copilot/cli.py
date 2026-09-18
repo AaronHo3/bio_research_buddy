@@ -33,6 +33,7 @@ from bio_research_copilot.application import (
     search_papers,
 )
 from bio_research_copilot.application.evaluate import collapse_to_papers
+from bio_research_copilot.application.query import RetrieverFactory, build_bm25, build_dense
 from bio_research_copilot.config import Settings
 from bio_research_copilot.domain import Paper, RetrievedEvidence, SearchQuery, Source
 from bio_research_copilot.evaluation import (
@@ -123,6 +124,13 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     query.add_argument("question", help="The research question, in plain language.")
     query.add_argument("--k", type=int, default=5, help="Number of passages (default: 5).")
     query.add_argument(
+        "--method",
+        choices=("bm25", "dense"),
+        default="bm25",
+        help="Retrieval method (default: bm25, the lexical baseline).",
+    )
+    query.add_argument("--model", default=None, help="Embedding model, for --method dense.")
+    query.add_argument(
         "--format",
         choices=("json", "table"),
         default="json",
@@ -168,6 +176,13 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     )
     evaluate.add_argument("benchmark", type=Path, help="Benchmark directory or questions.json.")
     evaluate.add_argument("--k", type=int, default=10, help="Cut-off for metrics (default: 10).")
+    evaluate.add_argument(
+        "--method",
+        choices=("bm25", "dense"),
+        default="bm25",
+        help="Retrieval method to score (default: bm25).",
+    )
+    evaluate.add_argument("--model", default=None, help="Embedding model, for --method dense.")
     evaluate.add_argument("--out", type=Path, default=None, help="Write the full JSON report here.")
     evaluate.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
@@ -242,9 +257,18 @@ def render_evidence_table(evidence: list[RetrievedEvidence]) -> str:
     return "\n".join(lines)
 
 
+def _build_retriever_factory(args: argparse.Namespace, runtime: Runtime) -> RetrieverFactory:
+    """Turn --method and --model into the factory the use cases expect."""
+    if args.method != "dense":
+        return build_bm25
+    model = runtime.build_embedding_model(args.model or runtime.default_embedding_model)
+    return lambda repository: build_dense(repository, model)
+
+
 def _cmd_query(args: argparse.Namespace, runtime: Runtime) -> int:
+    build = _build_retriever_factory(args, runtime)
     with runtime.open_repository(args.db) as repository:
-        evidence = query_passages(repository, args.question, args.k)
+        evidence = query_passages(repository, args.question, args.k, build_retriever=build)
     if args.format == "table":
         print(render_evidence_table(evidence))
     else:
@@ -391,8 +415,9 @@ def _cmd_evaluate(args: argparse.Namespace, runtime: Runtime) -> int:
         print(f"error: cannot read {args.benchmark}: not found", file=sys.stderr)
         return EXIT_BAD_INPUT
     benchmark = load_benchmark(args.benchmark)
+    build = _build_retriever_factory(args, runtime)
     with runtime.open_repository(args.db) as repository:
-        report = evaluate_retrieval(repository, benchmark, k=args.k)
+        report = evaluate_retrieval(repository, benchmark, k=args.k, build_retriever=build)
     print(render_evaluation_summary(report))
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)

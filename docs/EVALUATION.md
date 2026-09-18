@@ -131,9 +131,78 @@ nDCG and MRR normalise against the ideal ranking, so they do support cross-type 
 
 **Latency is not a concern at this scale.** Well under a millisecond per query, so rebuilding the index on every call costs nothing worth optimising yet.
 
-### Baseline to beat
+## Dense retrieval compared with the lexical baseline
 
-Any retrieval change is measured against these numbers on this benchmark. The two specific targets are recall at k=10, currently 0.099 below its achievable ceiling, and nDCG on comparison questions, currently 0.592 at k=5.
+Retriever `dense:BAAI/bge-small-en-v1.5`, same corpus, same judgments. Every passage is embedded once and stored; a query is embedded at search time and ranked by cosine similarity.
+
+| Metric | BM25 k=5 | Dense k=5 | BM25 k=10 | Dense k=10 |
+|---|---|---|---|---|
+| precision@k | 0.600 | **0.667** | **0.467** | 0.444 |
+| recall@k | 0.572 | **0.644** | **0.837** | 0.787 |
+| MRR | **0.944** | 0.870 | **0.944** | 0.870 |
+| nDCG@k | 0.760 | **0.785** | **0.826** | 0.776 |
+| latency (ms) | **0.1** | 3.5 | **0.2** | 3.3 |
+
+### Neither method wins
+
+Comparing nDCG question by question at k=10, the lexical baseline is better on six and the dense retriever on three. At k=5 it is five against three with one tie. Dense leads on the aggregate at k=5 and trails it at k=10, so even the direction of the result depends on the cut-off.
+
+This is the case for hybrid retrieval, arrived at by measurement rather than by assumption. Replacing BM25 with embeddings would have made this benchmark worse at k=10.
+
+### Dense wins exactly where the baseline was diagnosed weakest
+
+Comparison questions were the lexical baseline's worst type. They are the type dense improves most.
+
+| Type, k=5 | BM25 nDCG | Dense nDCG |
+|---|---|---|
+| comparison | 0.592 | **0.741** |
+| mechanism | **0.897** | 0.848 |
+| target | **0.791** | 0.766 |
+
+On the question contrasting combined CTLA-4 and PD-1 blockade against monotherapy, dense reaches perfect recall and a perfect ranking at k=5 where the baseline reaches two thirds. The prediction from the error analysis held: a method that represents meaning rather than word overlap handles "A compared with B" better than one that sums independent term matches.
+
+### The vocabulary-mismatch prediction was half right
+
+The error analysis predicted dense retrieval would recover the biomarker papers that never use the word "biomarker". At k=10 on that question:
+
+| | Relevant found of 10 |
+|---|---|
+| BM25 | 5 |
+| Dense | 5 |
+| Either | 7 |
+
+Dense did recover two of the three papers named in the analysis. It also lost two that the baseline found. The count is identical and the papers are not. So the hypothesis was right about the mechanism and wrong about the outcome: semantic similarity reaches vocabulary-mismatched papers and gives up others in exchange.
+
+### Union recall is the argument for fusion
+
+Taking the union of both retrievers' top ten:
+
+| Retriever | mean recall@10 |
+|---|---|
+| BM25 | 0.837 |
+| Dense | 0.787 |
+| Either | 0.890 |
+
+The union beats both, and it beats the better of the two by more than the gap between them. The two methods fail on different questions, which is precisely the condition under which fusing rankings helps. That number, not a preference for the technique, is the reason to build hybrid retrieval next.
+
+### Abstention survives the switch
+
+Dense retrieval has no concept of "no match": every passage has some cosine similarity to every query, so it always returns a full page of results. The zebrafish question that returned nothing under BM25 returns ten papers under dense. The separation by score nevertheless holds.
+
+| Retriever | Lowest answerable | Highest unanswerable |
+|---|---|---|
+| BM25 | 8.202 | 4.140 |
+| Dense | 0.845 | 0.657 |
+
+Both remain separable on this benchmark, so an abstention threshold stays viable for either. The thresholds are not interchangeable, since the scores are on unrelated scales.
+
+### Cost
+
+Dense retrieval is about sixteen times slower per query, and both are far below anything a user would notice. The dense figure includes embedding the query, which is the dominant term; the similarity computation itself is one matrix multiply. The real cost is the one-time embedding of the corpus, about eight seconds for 135 passages.
+
+### Target to beat
+
+Hybrid retrieval has to beat 0.837 recall and 0.826 nDCG at k=10, and 0.785 nDCG at k=5. Union recall of 0.890 is the ceiling fusion can reach without a better underlying retriever.
 
 ## Known limitations
 

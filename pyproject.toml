@@ -9,6 +9,7 @@ authors = [{ name = "Aaron Ho" }]
 dependencies = [
     "fastembed>=0.4",
     "httpx>=0.27",
+    "numpy>=1.26",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
 ]

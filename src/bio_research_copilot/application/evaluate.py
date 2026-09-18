@@ -97,7 +97,7 @@ def evaluate_retrieval(
     timer: Callable[[], float] = time.perf_counter,
 ) -> EvaluationReport:
     passages = repository.all_passages()
-    retriever = build_retriever(passages)
+    retriever = build_retriever(repository)
     results: list[QuestionResult] = []
 
     for q in benchmark.questions:
