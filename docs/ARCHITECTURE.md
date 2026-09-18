@@ -204,9 +204,20 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - Observed weakness, from real output: the baseline selects sentences by term overlap, so it returns sentences about the right topic that do not answer the question, and passages that are paper titles become claims that read as citations. Both are the expected shape of the floor rather than defects to fix here.
 - Consequence: the provider decision comes to the author with the machinery already proven and a concrete baseline to measure against.
 
+### ADR-015: Hosted Claude for synthesis, opt-in, with tool-use output
+
+- Context: ADR-014 left a deterministic extractive baseline and a `SynthesisProvider` port. The baseline cannot combine two papers into one claim, cannot answer a comparison question, and turns title passages into claims that read as citations. Those are the capabilities a language model adds, and the specification also asks for cost and latency to be evaluated, which only exist as numbers against a metered provider.
+- Choice: Anthropic's Claude behind the existing port, installed with `uv sync --extra llm` and selected with `answer --synthesis llm`. Extraction stays the default, so the repository runs with no API key and no paid service.
+- Structured output over prose. The model must fill a declared schema, a list of `{claim, evidence_ids}`, and `tool_choice` forces that call. A response containing prose instead means the provider broke its contract, and the caller abstains rather than parsing free text.
+- Passages are labelled with their real `chunk_id`, not with positions. A citation is therefore either a genuine id or an obvious error, with no index-to-id translation step that could silently go wrong.
+- Grounding is enforced at two layers that are deliberately not the same. The adapter drops evidence ids that were not supplied and counts them, so one invented id degrades an answer rather than corrupting it. Whatever survives must still satisfy the `ResearchAnswer` validator, which cannot construct an answer citing evidence it does not hold. The adapter is best-effort cleanup; the type is the guarantee.
+- Consequence, accepted: paraphrase is now allowed, so faithfulness stops being a property of construction and becomes something that must be measured. That measurement is the next slice, and the dropped-citation count is the raw material for a fabrication rate.
+- Consequence, unwelcome: the current SDK exposes no temperature control, so identical input can produce differently worded answers on two runs. Determinism stops at the prompt, which is a pure function pinned to a golden file. The SDK also vendors its own HTTP library rather than `httpx`, so this one adapter's injected client differs in type from every other adapter in the project.
+
+
 ## Open decisions
 
 - Whether a chunking strategy that keeps a title with its abstract is worth the coarser citations; the MedCPT diagnostic suggests it is worth about 0.089 nDCG to a model that expects that format.
-- LLM provider or local model, now with an extractive baseline to beat and a grounding guarantee it will inherit.
+- Whether a smaller model is enough for synthesis. ADR-015 defaults to Sonnet; the cost and quality comparison against Haiku is unmeasured.
 - Frontend framework and deployment target.
 

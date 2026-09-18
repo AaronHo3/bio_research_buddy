@@ -62,7 +62,14 @@ from bio_research_copilot.evaluation import (
     load_manifest,
 )
 from bio_research_copilot.retrieval import BM25Index
-from bio_research_copilot.synthesis import DEFAULT_CHAR_BUDGET, SynthesisError
+from bio_research_copilot.synthesis import (
+    DEFAULT_CHAR_BUDGET,
+    DEFAULT_LLM_MODEL,
+    SynthesisError,
+    SynthesisProvider,
+    build_llm_synthesizer,
+)
+from bio_research_copilot.synthesis.llm import LlmSynthesizer
 
 DISCLAIMER = "For research and educational use only. Not medical advice."
 
@@ -83,6 +90,8 @@ class Runtime:
     default_embedding_model: str = DEFAULT_MODEL
     build_reranker: Callable[[str], Reranker] = build_reranker
     default_rerank_model: str = DEFAULT_RERANK_MODEL
+    build_synthesizer: Callable[[str], SynthesisProvider] = build_llm_synthesizer
+    default_llm_model: str = DEFAULT_LLM_MODEL
 
 
 def build_parser(default_db: Path) -> argparse.ArgumentParser:
@@ -206,6 +215,13 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
         default=DEFAULT_CHAR_BUDGET,
         help=f"Evidence characters given to synthesis (default: {DEFAULT_CHAR_BUDGET}).",
     )
+    answer.add_argument(
+        "--synthesis",
+        choices=("extractive", "llm"),
+        default="extractive",
+        help="How claims are written (default: extractive, which needs no API key).",
+    )
+    answer.add_argument("--llm-model", default=None, help="Model name, for --synthesis llm.")
     answer.add_argument(
         "--format",
         choices=("json", "text"),
@@ -569,13 +585,36 @@ def render_answer(answer: ResearchAnswer, papers: dict[str, Paper]) -> str:
     return "\n".join(lines)
 
 
+def _synthesizer(args: argparse.Namespace, runtime: Runtime) -> SynthesisProvider | None:
+    """The chosen provider, or ``None`` to let the service use its default."""
+    if args.synthesis != "llm":
+        return None
+    return runtime.build_synthesizer(args.llm_model or runtime.default_llm_model)
+
+
+def _report_usage(provider: SynthesisProvider | None) -> None:
+    """Cost and latency to stderr, so stdout stays pipeable in either format."""
+    usage = getattr(provider, "last_usage", None)
+    if usage is None:
+        return
+    note = (
+        f"synthesis: {usage.input_tokens} in / {usage.output_tokens} out tokens"
+        f" in {usage.latency_seconds:.2f}s"
+    )
+    if usage.unsupported_citations:
+        note += f", {usage.unsupported_citations} unsupported citation(s) dropped"
+    print(note, file=sys.stderr)
+
+
 def _cmd_answer(args: argparse.Namespace, runtime: Runtime) -> int:
     build = _retriever_factory(args, runtime)
+    provider = _synthesizer(args, runtime)
     with runtime.open_repository(args.db) as repository:
         answer = answer_question(
             repository,
             args.question,
             build_retriever=build,
+            synthesizer=provider,
             evidence_limit=args.k,
             char_budget=args.char_budget,
             min_score=args.min_score,
@@ -595,6 +634,7 @@ def _cmd_answer(args: argparse.Namespace, runtime: Runtime) -> int:
         print(json.dumps(answer.model_dump(mode="json"), indent=2, ensure_ascii=False))
     else:
         print(render_answer(answer, papers))
+    _report_usage(provider)
     return EXIT_OK
 
 
@@ -666,6 +706,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 name, cache_dir=settings.embedding_cache_dir
             ),
             default_rerank_model=settings.rerank_model,
+            build_synthesizer=lambda name: LlmSynthesizer(
+                api_key=settings.anthropic_api_key,
+                model=name,
+                max_tokens=settings.llm_max_tokens,
+            ),
+            default_llm_model=settings.llm_model,
         )
         return run(sys.argv[1:] if argv is None else argv, runtime)
 

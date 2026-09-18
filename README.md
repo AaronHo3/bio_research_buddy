@@ -77,7 +77,19 @@ Sources
       https://pubmed.ncbi.nlm.nih.gov/32778792/
 ```
 
-When the stored evidence does not support an answer, it says so rather than answering anyway. Claims are currently sentences copied verbatim from the cited passage, which makes the answer unable to fabricate and also unable to connect ideas. That is a deliberate baseline for a language model to beat.
+When the stored evidence does not support an answer, it says so rather than answering anyway.
+
+By default, claims are sentences copied verbatim from the cited passage. That makes the answer unable to fabricate and equally unable to connect ideas across papers: a deliberate baseline. Synthesis by a language model is an optional extra that lifts that limit:
+
+```bash
+uv sync --extra llm
+export ANTHROPIC_API_KEY=...        # or set it in .env
+uv run bio-copilot answer "How does amyloid beta promote tau pathology?" --synthesis llm
+```
+
+The model is given each passage labelled with its real chunk id and must return claims through a schema in which the supporting ids are a required, non-empty field. Ids it was not given are dropped and counted, and the answer type still refuses to be constructed if any citation points at evidence the answer does not hold. Token counts and latency are reported on stderr, so `--format json` stays pipeable.
+
+No API key is needed to use this project. Without one, `answer` runs the extractive provider and everything else works unchanged.
 
 Exit codes: 1 the literature source or database failed, 2 the input was invalid, 3 the requested record is not stored.
 
@@ -87,7 +99,7 @@ For research and educational use only. Not medical advice.
 
 Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 is done: a BM25 lexical baseline, a committed 60-paper benchmark with 12 questions and exhaustive relevance judgments, and measured results with an error analysis. The baseline reaches 0.837 recall and 0.826 nDCG at k=10, and its clearest failure is a vocabulary mismatch that semantic retrieval should close. Method, numbers, and limitations are in [docs/EVALUATION.md](docs/EVALUATION.md). Stage 4 compares six retrieval configurations on one benchmark: lexical BM25, two dense encoders, rank fusion, and two cross-encoder rerankers, one general and one trained on PubMed. No configuration wins everything, and the cheapest one still holds the best ranking at depth. The most useful result was a negative one that turned out to be about the pipeline rather than the model: a biomedical encoder looked clearly worse until it was fed documents in the format it was trained on, at which point it matched the best ranking in the project. Every number, including the ones that went the wrong way, is in [docs/EVALUATION.md](docs/EVALUATION.md).
 
-Stage 5 is under way. The end-to-end path now exists: a question retrieves evidence, synthesis produces claims, every claim carries the id of the passage it came from, and the answer type refuses to be constructed if a citation points at evidence it does not hold. The synthesis provider is deterministic and extractive for now, so it cannot fabricate; a language model comes next and has to beat it without losing that guarantee.
+Stage 5 is under way. The end-to-end path now exists: a question retrieves evidence, synthesis produces claims, every claim carries the id of the passage it came from, and the answer type refuses to be constructed if a citation points at evidence it does not hold. Two providers sit behind one interface: a deterministic extractive baseline that cannot fabricate, and an optional hosted language model that can paraphrase and combine passages but inherits the same grounding guarantee. Whether the model actually beats the baseline on citation correctness, faithfulness and abstention is not yet measured, and that measurement is the remaining Stage 5 gate.
 
 See `PROJECT_SPEC.md` for scope. This README should evolve into the public recruiter/user-facing document as verified features and results exist.
 

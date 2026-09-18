@@ -7,6 +7,7 @@ the recorded PubMed fixture. If a change alters output, the diff is the review.
 import io
 import json
 import sys
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -27,7 +28,12 @@ from bio_research_copilot.cli import (
     ensure_utf8_output,
     run,
 )
-from bio_research_copilot.domain import Paper, SearchQuery, Source
+from bio_research_copilot.domain import Citation, Paper, RetrievedEvidence, SearchQuery, Source
+from bio_research_copilot.synthesis import (
+    SynthesisProvider,
+    Usage,
+    build_llm_synthesizer,
+)
 from tests.unit.fakes import FakeEmbeddingModel, FakeReranker, failing_model, failing_reranker
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -48,6 +54,20 @@ class StubSource:
         return self.papers
 
 
+class StubSynthesizer:
+    """Stands in for a hosted provider, so CLI tests need no network or key."""
+
+    def __init__(self, name: str = "anthropic:stub-model") -> None:
+        self.name = name
+        self.last_usage: Usage | None = None
+
+    def synthesize(self, question: str, evidence: list[RetrievedEvidence]) -> list[Citation]:
+        self.last_usage = Usage(
+            input_tokens=120, output_tokens=40, latency_seconds=0.5, unsupported_citations=1
+        )
+        return [Citation(claim="A stubbed claim.", evidence_ids=[evidence[0].passage.chunk_id])]
+
+
 @pytest.fixture
 def db(tmp_path: Path) -> Path:
     return tmp_path / "test.sqlite"
@@ -58,9 +78,15 @@ def runtime(
     db: Path | None = None,
     model: FakeEmbeddingModel | None = None,
     reranker: FakeReranker | None = None,
+    synthesizer: SynthesisProvider | None = None,
 ) -> Runtime:
     model = model or FakeEmbeddingModel()
     reranker = reranker or FakeReranker()
+    chosen: SynthesisProvider | None = synthesizer
+    # Falling through to the real factory keeps the no-API-key path under test.
+    build_synth: Callable[[str], SynthesisProvider] = (
+        build_llm_synthesizer if chosen is None else lambda name: chosen
+    )
     return Runtime(
         source=source,
         open_repository=SqliteRepository.open,
@@ -69,6 +95,7 @@ def runtime(
         default_embedding_model=model.name,
         build_reranker=lambda name: reranker,
         default_rerank_model=reranker.name,
+        build_synthesizer=build_synth,
     )
 
 
@@ -527,6 +554,67 @@ def test_answer_respects_the_retrieval_method(db: Path, capsys: pytest.CaptureFi
 def test_answer_blank_question_is_exit_2(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert run(["answer", "  ", "--db", str(db)], runtime(StubSource())) == EXIT_BAD_INPUT
     assert "error: invalid input" in capsys.readouterr().err
+
+
+def test_answer_defaults_to_extractive_so_no_api_key_is_needed(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db)
+    run(["load-corpus", str(FIXTURES / "pubmed" / "efetch_crispr.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    argv = ["answer", ANSWERABLE, "--format", "json", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
+    assert json.loads(capsys.readouterr().out)["synthesis_method"] == "extractive-v1"
+
+
+def test_answer_with_llm_synthesis_uses_the_chosen_provider(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db, synthesizer=StubSynthesizer())
+    run(["load-corpus", str(FIXTURES / "pubmed" / "efetch_crispr.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    argv = ["answer", ANSWERABLE, "--synthesis", "llm", "--format", "json", "--db", str(db)]
+    assert run(argv, rt) == EXIT_OK
+    answer = json.loads(capsys.readouterr().out)
+    assert answer["synthesis_method"] == "anthropic:stub-model"
+    assert answer["citations"][0]["claim"] == "A stubbed claim."
+
+
+def test_answer_reports_cost_and_latency_on_stderr(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Usage goes to stderr so stdout stays pipeable in either format."""
+    rt = runtime(StubSource(RECORDED_PAPERS), db, synthesizer=StubSynthesizer())
+    run(["load-corpus", str(FIXTURES / "pubmed" / "efetch_crispr.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    argv = ["answer", ANSWERABLE, "--synthesis", "llm", "--format", "json", "--db", str(db)]
+    run(argv, rt)
+    captured = capsys.readouterr()
+    assert "120 in / 40 out tokens" in captured.err
+    assert "1 unsupported citation(s) dropped" in captured.err
+    json.loads(captured.out)  # stdout is still valid JSON
+
+
+def test_answer_without_llm_synthesis_reports_no_usage(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db, synthesizer=StubSynthesizer())
+    run(["load-corpus", str(FIXTURES / "pubmed" / "efetch_crispr.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    run(["answer", ANSWERABLE, "--db", str(db)], rt)
+    assert "synthesis:" not in capsys.readouterr().err
+
+
+def test_answer_with_llm_synthesis_and_no_api_key_is_exit_1(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The real default factory has no key, which must guide rather than crash."""
+    rt = runtime(StubSource(RECORDED_PAPERS), db)
+    run(["load-corpus", str(FIXTURES / "pubmed" / "efetch_crispr.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    argv = ["answer", ANSWERABLE, "--synthesis", "llm", "--db", str(db)]
+    assert run(argv, rt) == EXIT_DEPENDENCY_FAILED
+    assert "extractive" in capsys.readouterr().err
 
 
 # -- load-corpus, judge, evaluate -----------------------------------------------

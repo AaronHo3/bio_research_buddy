@@ -1,0 +1,15 @@
+<evidence>
+<passage id="pubmed:31978945:0" section="title">
+Base editing: precision chemistry on the genome.
+</passage>
+<passage id="pubmed:31978945:2" section="results">
+Off-target editing arose chiefly from deaminase activity on transiently exposed single-stranded DNA.
+</passage>
+<passage id="pubmed:29160308:1" section="background">
+Guide RNA design influences editing specificity in mammalian cells.
+</passage>
+</evidence>
+
+Question: What causes off-target editing by base editors?
+
+Record at most 6 claims that answer this question, using only the passages above. Cite each passage by the exact id in its tag.

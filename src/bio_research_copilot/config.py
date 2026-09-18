@@ -22,3 +22,9 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_cache_dir: Path | None = None
     rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+
+    # LLM synthesis is optional. Without a key the CLI still answers, using the
+    # deterministic extractive provider, so the project runs with no paid service.
+    anthropic_api_key: str | None = None
+    llm_model: str = "claude-sonnet-5"
+    llm_max_tokens: int = Field(default=1024, gt=0)

@@ -22,11 +22,19 @@ medcpt = [
     "transformers>=4.40",
 ]
 
+# Hosted LLM synthesis. Optional: without it the CLI answers with the
+# deterministic extractive provider, so the project needs no paid service to run.
+#   uv sync --extra llm
+llm = [
+    "anthropic>=0.40",
+]
+
 [project.scripts]
 bio-copilot = "bio_research_copilot.cli:main"
 
 [dependency-groups]
 dev = [
+    "anthropic>=0.40",
     "mypy>=1.10",
     "pytest>=8.2",
     "ruff>=0.5",
@@ -76,7 +84,7 @@ plugins = ["pydantic.mypy"]
 # environment, so their imports cannot be resolved here. The adapter defers those
 # imports and converts a missing package into a typed error at runtime.
 [[tool.mypy.overrides]]
-module = ["torch.*", "transformers.*"]
+module = ["torch.*", "transformers.*", "anthropic.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
