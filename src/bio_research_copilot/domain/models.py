@@ -91,6 +91,27 @@ class SearchQuery(BaseModel):
     max_results: int = Field(default=10, ge=1, le=100)
 
 
+class PassageEmbedding(BaseModel):
+    """One passage's vector under one named model.
+
+    ``content_hash`` is copied from the passage at embedding time. When a
+    passage's text changes its hash changes, so a stored vector whose hash no
+    longer matches its passage is stale and must be recomputed. This is what
+    makes re-embedding incremental rather than all-or-nothing.
+    """
+
+    model_config = _STRICT
+
+    chunk_id: str = Field(min_length=1)
+    model: str = Field(min_length=1, description="Embedding model name and version.")
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    vector: list[float] = Field(min_length=1)
+
+    @property
+    def dimension(self) -> int:
+        return len(self.vector)
+
+
 class RetrievedEvidence(BaseModel):
     """One passage returned for a query, with how and how strongly it matched."""
 

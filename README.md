@@ -44,6 +44,7 @@ uv run bio-copilot ingest "CRISPR base editing off-target" --limit 3   # prints 
 uv run bio-copilot show 24157548                                        # one stored paper
 uv run bio-copilot passages 24157548                                    # its citable passages
 uv run bio-copilot query "double nicking off-target" --k 3 --format table  # rank stored passages
+uv run bio-copilot embed                                                # vectors for stored passages
 ```
 
 Ingesting is idempotent: re-running a question refreshes existing papers instead of duplicating them, and each run is recorded with the ranked IDs it returned. Each paper is also split into passages (title, then one per abstract section) with stable chunk IDs. The `query` command ranks those stored passages with a hand-written BM25 implementation, no network needed. That is the lexical baseline every later retrieval method has to beat. The database is a single SQLite file at `data/bio_copilot.sqlite` (git-ignored), configurable with `DATABASE_PATH` or `--db`.
@@ -54,7 +55,7 @@ For research and educational use only. Not medical advice.
 
 ## Current milestone
 
-Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 is done: a BM25 lexical baseline, a committed 60-paper benchmark with 12 questions and exhaustive relevance judgments, and measured results with an error analysis. The baseline reaches 0.837 recall and 0.826 nDCG at k=10, and its clearest failure is a vocabulary mismatch that semantic retrieval should close. Method, numbers, and limitations are in [docs/EVALUATION.md](docs/EVALUATION.md). Next is embeddings and hybrid retrieval (Stage 4), measured against this baseline.
+Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 is done: a BM25 lexical baseline, a committed 60-paper benchmark with 12 questions and exhaustive relevance judgments, and measured results with an error analysis. The baseline reaches 0.837 recall and 0.826 nDCG at k=10, and its clearest failure is a vocabulary mismatch that semantic retrieval should close. Method, numbers, and limitations are in [docs/EVALUATION.md](docs/EVALUATION.md). Stage 4 is in progress. Passages can now be embedded with a local model that runs offline after a one-time download, and vectors are stored per model so two can be compared head to head. Dense retrieval and the measured comparison against the lexical baseline come next.
 
 See `PROJECT_SPEC.md` for scope. This README should evolve into the public recruiter/user-facing document as verified features and results exist.
 

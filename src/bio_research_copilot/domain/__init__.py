@@ -4,6 +4,7 @@ from bio_research_copilot.domain.chunking import Chunker, SectionChunker
 from bio_research_copilot.domain.models import (
     Paper,
     Passage,
+    PassageEmbedding,
     PublicationDate,
     RetrievedEvidence,
     SearchQuery,
@@ -14,6 +15,7 @@ __all__ = [
     "Chunker",
     "Paper",
     "Passage",
+    "PassageEmbedding",
     "PublicationDate",
     "RetrievedEvidence",
     "SearchQuery",

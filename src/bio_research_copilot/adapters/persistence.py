@@ -9,7 +9,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from bio_research_copilot.domain import Paper, Passage, Source
+from bio_research_copilot.domain import Paper, Passage, PassageEmbedding, Source
 
 
 class PersistenceError(Exception):
@@ -79,3 +79,17 @@ class PaperRepository(Protocol):
         ...
 
     def count_passages(self) -> int: ...
+
+    def upsert_embeddings(self, embeddings: list[PassageEmbedding]) -> int:
+        """Store or replace vectors, keyed on (chunk_id, model). Returns the count written."""
+        ...
+
+    def get_embeddings(self, model: str) -> list[PassageEmbedding]:
+        """Every stored vector for one model, ordered by chunk_id."""
+        ...
+
+    def passages_needing_embedding(self, model: str) -> list[Passage]:
+        """Passages with no vector for this model, or whose text changed since embedding."""
+        ...
+
+    def count_embeddings(self, model: str) -> int: ...

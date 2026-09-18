@@ -13,6 +13,7 @@ Design notes:
 
 import json
 import sqlite3
+from array import array
 from datetime import datetime
 from pathlib import Path
 from typing import Self
@@ -23,11 +24,11 @@ from bio_research_copilot.adapters.persistence import (
     RetrievedPaperRef,
     UpsertResult,
 )
-from bio_research_copilot.domain import Paper, Passage, PublicationDate, Source
+from bio_research_copilot.domain import Paper, Passage, PassageEmbedding, PublicationDate, Source
 
 # Bumped when tables change. So far every change is additive and handled by
 # CREATE TABLE IF NOT EXISTS; a real migration step is needed once a table changes shape.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS papers (
@@ -75,6 +76,20 @@ CREATE TABLE IF NOT EXISTS passages (
 );
 
 CREATE INDEX IF NOT EXISTS passages_by_paper ON passages (source, source_id, position);
+
+-- ON DELETE CASCADE matters: replace_passages deletes a paper's passages before
+-- reinserting them, and a vector for a passage that no longer exists is meaningless.
+-- Without the cascade that delete fails on the foreign key instead.
+CREATE TABLE IF NOT EXISTS embeddings (
+    chunk_id     TEXT    NOT NULL REFERENCES passages(chunk_id) ON DELETE CASCADE,
+    model        TEXT    NOT NULL,
+    content_hash TEXT    NOT NULL,
+    dimension    INTEGER NOT NULL,
+    vector       BLOB    NOT NULL,
+    PRIMARY KEY (chunk_id, model)
+);
+
+CREATE INDEX IF NOT EXISTS embeddings_by_model ON embeddings (model);
 """
 
 _UPSERT_PAPER = """
@@ -100,7 +115,8 @@ FROM papers WHERE source = ? AND source_id = ?
 """
 
 _SELECT_PASSAGE = (
-    "SELECT chunk_id, source, source_id, position, section, text, content_hash, strategy"
+    "SELECT passages.chunk_id, passages.source, passages.source_id, passages.position,"
+    " passages.section, passages.text, passages.content_hash, passages.strategy"
     " FROM passages"
 )
 
@@ -234,16 +250,36 @@ class SqliteRepository:
     # -- passages ------------------------------------------------------------
 
     def replace_passages(self, passages: list[Passage]) -> int:
-        papers = {(p.source.value, p.source_id) for p in passages}
+        """Make the stored passages of each paper mentioned match the list exactly.
+
+        Passages that survive are updated in place rather than deleted and
+        reinserted, so their stored vectors survive too. Only a passage that
+        genuinely disappears is deleted, taking its vectors with it. A surviving
+        passage whose text changed gets a new ``content_hash``, which is what
+        marks its vector stale without discarding it.
+        """
+        papers = sorted({(p.source.value, p.source_id) for p in passages})
+        keep = {p.chunk_id for p in passages}
         try:
             with self._conn:
-                self._conn.executemany(
-                    "DELETE FROM passages WHERE source = ? AND source_id = ?", sorted(papers)
-                )
+                for source, source_id in papers:
+                    existing = self._conn.execute(
+                        "SELECT chunk_id FROM passages WHERE source = ? AND source_id = ?",
+                        (source, source_id),
+                    ).fetchall()
+                    self._conn.executemany(
+                        "DELETE FROM passages WHERE chunk_id = ?",
+                        [(r["chunk_id"],) for r in existing if r["chunk_id"] not in keep],
+                    )
                 self._conn.executemany(
                     "INSERT INTO passages (chunk_id, source, source_id, position,"
                     " section, text, content_hash, strategy)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                    " ON CONFLICT (chunk_id) DO UPDATE SET"
+                    "   source = excluded.source, source_id = excluded.source_id,"
+                    "   position = excluded.position, section = excluded.section,"
+                    "   text = excluded.text, content_hash = excluded.content_hash,"
+                    "   strategy = excluded.strategy",
                     [
                         (
                             p.chunk_id,
@@ -259,24 +295,91 @@ class SqliteRepository:
                     ],
                 )
         except sqlite3.IntegrityError as exc:
-            msg = f"passage references a paper that is not stored, or duplicates a chunk id: {exc}"
+            msg = f"passage references a paper that is not stored: {exc}"
             raise PersistenceError(msg) from exc
         return len(passages)
 
     def get_passages(self, source: Source, source_id: str) -> list[Passage]:
         rows = self._conn.execute(
-            f"{_SELECT_PASSAGE} WHERE source = ? AND source_id = ? ORDER BY position",
+            f"{_SELECT_PASSAGE} WHERE passages.source = ? AND passages.source_id = ?"
+            " ORDER BY passages.position",
             (source.value, source_id),
         ).fetchall()
         return [_row_to_passage(r) for r in rows]
 
     def all_passages(self) -> list[Passage]:
-        rows = self._conn.execute(f"{_SELECT_PASSAGE} ORDER BY chunk_id").fetchall()
+        rows = self._conn.execute(f"{_SELECT_PASSAGE} ORDER BY passages.chunk_id").fetchall()
         return [_row_to_passage(r) for r in rows]
 
     def count_passages(self) -> int:
         count: int = self._conn.execute("SELECT COUNT(*) FROM passages").fetchone()[0]
         return count
+
+    # -- embeddings ----------------------------------------------------------
+
+    def upsert_embeddings(self, embeddings: list[PassageEmbedding]) -> int:
+        try:
+            with self._conn:
+                self._conn.executemany(
+                    "INSERT INTO embeddings (chunk_id, model, content_hash, dimension, vector)"
+                    " VALUES (?, ?, ?, ?, ?)"
+                    " ON CONFLICT (chunk_id, model) DO UPDATE SET"
+                    "   content_hash = excluded.content_hash,"
+                    "   dimension    = excluded.dimension,"
+                    "   vector       = excluded.vector",
+                    [
+                        (e.chunk_id, e.model, e.content_hash, e.dimension, _pack(e.vector))
+                        for e in embeddings
+                    ],
+                )
+        except sqlite3.IntegrityError as exc:
+            msg = f"embedding references a passage that is not stored: {exc}"
+            raise PersistenceError(msg) from exc
+        return len(embeddings)
+
+    def get_embeddings(self, model: str) -> list[PassageEmbedding]:
+        rows = self._conn.execute(
+            "SELECT chunk_id, model, content_hash, vector FROM embeddings"
+            " WHERE model = ? ORDER BY chunk_id",
+            (model,),
+        ).fetchall()
+        return [
+            PassageEmbedding(
+                chunk_id=r["chunk_id"],
+                model=r["model"],
+                content_hash=r["content_hash"],
+                vector=_unpack(r["vector"]),
+            )
+            for r in rows
+        ]
+
+    def passages_needing_embedding(self, model: str) -> list[Passage]:
+        """Missing vectors, plus vectors whose passage text has changed since embedding."""
+        rows = self._conn.execute(
+            f"{_SELECT_PASSAGE} LEFT JOIN embeddings e"
+            "  ON e.chunk_id = passages.chunk_id AND e.model = ?"
+            " WHERE e.chunk_id IS NULL OR e.content_hash != passages.content_hash"
+            " ORDER BY passages.chunk_id",
+            (model,),
+        ).fetchall()
+        return [_row_to_passage(r) for r in rows]
+
+    def count_embeddings(self, model: str) -> int:
+        count: int = self._conn.execute(
+            "SELECT COUNT(*) FROM embeddings WHERE model = ?", (model,)
+        ).fetchone()[0]
+        return count
+
+
+def _pack(vector: list[float]) -> bytes:
+    """Store a vector as packed float32. Compact, and exact enough for cosine similarity."""
+    return array("f", vector).tobytes()
+
+
+def _unpack(blob: bytes) -> list[float]:
+    values = array("f")
+    values.frombytes(blob)
+    return values.tolist()
 
 
 def _stamp(moment: datetime) -> str:

@@ -28,6 +28,7 @@ from bio_research_copilot.cli import (
     run,
 )
 from bio_research_copilot.domain import Paper, SearchQuery, Source
+from tests.unit.fakes import FakeEmbeddingModel, failing_model
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 RECORDED_PAPERS = parse_efetch_xml((FIXTURES / "pubmed" / "efetch_crispr.xml").read_text("utf-8"))
@@ -52,11 +53,16 @@ def db(tmp_path: Path) -> Path:
     return tmp_path / "test.sqlite"
 
 
-def runtime(source: StubSource, db: Path | None = None) -> Runtime:
+def runtime(
+    source: StubSource, db: Path | None = None, model: FakeEmbeddingModel | None = None
+) -> Runtime:
+    model = model or FakeEmbeddingModel()
     return Runtime(
         source=source,
         open_repository=SqliteRepository.open,
         default_db=db or Path("unused.sqlite"),
+        build_embedding_model=lambda name: model,
+        default_embedding_model=model.name,
     )
 
 
@@ -406,6 +412,53 @@ def test_judge_topic_scope_without_a_manifest_is_exit_2(
     code = run(["judge", str(bench), "--db", str(db)], runtime(StubSource()))
     assert code == EXIT_BAD_INPUT
     assert "manifest.json" in capsys.readouterr().err
+
+
+def test_embed_stores_vectors_and_is_incremental(
+    db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert run(["embed", "--db", str(db)], rt) == EXIT_OK
+    first = json.loads(capsys.readouterr().out)
+    assert first["model_name"] == "fake-v1"
+    assert first["dimension"] == 8
+    assert first["passages_embedded"] == 6
+    assert first["embeddings_stored"] == 6
+
+    assert run(["embed", "--db", str(db)], rt) == EXIT_OK
+    second = json.loads(capsys.readouterr().out)
+    assert second["passages_embedded"] == 0
+    assert second["passages_already_current"] == 6
+
+    with SqliteRepository.open(db) as repo:
+        assert repo.count_embeddings("fake-v1") == 6
+
+
+def test_embed_model_flag_selects_the_model(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    model = FakeEmbeddingModel(name="chosen-v2", dimension=4)
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db, model=model)
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    run(["embed", "--model", "chosen-v2", "--batch-size", "2", "--db", str(db)], rt)
+    report = json.loads(capsys.readouterr().out)
+    assert report["model_name"] == "chosen-v2"
+    assert report["dimension"] == 4
+    assert [len(b) for b in model.batches] == [2, 2, 2]
+
+
+def test_embed_model_failure_is_exit_1(db: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db=db, model=failing_model("no model here"))
+    run(["ingest", "q", "--db", str(db)], rt)
+    capsys.readouterr()
+
+    assert run(["embed", "--db", str(db)], rt) == EXIT_DEPENDENCY_FAILED
+    captured = capsys.readouterr()
+    assert captured.err == "error: no model here\n"
+    assert "Traceback" not in captured.err
 
 
 def test_evaluate_prints_summary_and_writes_report(

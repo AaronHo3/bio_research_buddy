@@ -17,12 +17,15 @@ from pathlib import Path
 import httpx
 from pydantic import ValidationError
 
+from bio_research_copilot.adapters.embedding import EmbeddingError, EmbeddingModel
+from bio_research_copilot.adapters.fastembed_model import DEFAULT_MODEL, FastEmbedModel
 from bio_research_copilot.adapters.literature import LiteratureSource, LiteratureSourceError
 from bio_research_copilot.adapters.persistence import PaperRepository, PersistenceError
 from bio_research_copilot.adapters.pubmed import PubMedClient, parse_efetch_xml
 from bio_research_copilot.adapters.sqlite_repository import SqliteRepository
 from bio_research_copilot.application import (
     EvaluationReport,
+    embed_corpus,
     evaluate_retrieval,
     ingest_papers,
     load_corpus,
@@ -55,6 +58,8 @@ class Runtime:
     source: LiteratureSource
     open_repository: Callable[[Path], AbstractContextManager[PaperRepository]]
     default_db: Path
+    build_embedding_model: Callable[[str], EmbeddingModel] = FastEmbedModel
+    default_embedding_model: str = DEFAULT_MODEL
 
 
 def build_parser(default_db: Path) -> argparse.ArgumentParser:
@@ -146,6 +151,15 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     )
     judge.add_argument("--pool", type=int, default=10, help="Candidates per question, pool scope.")
     judge.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
+
+    embed = subparsers.add_parser(
+        "embed", help="Compute and store vectors for stored passages (incremental)."
+    )
+    embed.add_argument("--model", default=None, help=f"Embedding model (default: {DEFAULT_MODEL}).")
+    embed.add_argument("--batch-size", type=int, default=64, help="Passages per batch.")
+    embed.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
 
@@ -390,6 +404,14 @@ def _cmd_evaluate(args: argparse.Namespace, runtime: Runtime) -> int:
     return EXIT_OK
 
 
+def _cmd_embed(args: argparse.Namespace, runtime: Runtime) -> int:
+    model = runtime.build_embedding_model(args.model or runtime.default_embedding_model)
+    with runtime.open_repository(args.db) as repository:
+        report = embed_corpus(repository, model, batch_size=args.batch_size)
+    print(json.dumps(report.model_dump(mode="json"), indent=2, ensure_ascii=False))
+    return EXIT_OK
+
+
 _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "search": _cmd_search,
     "ingest": _cmd_ingest,
@@ -398,6 +420,7 @@ _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "query": _cmd_query,
     "load-corpus": _cmd_load_corpus,
     "judge": _cmd_judge,
+    "embed": _cmd_embed,
     "evaluate": _cmd_evaluate,
 }
 
@@ -411,7 +434,7 @@ def run(argv: Sequence[str], runtime: Runtime) -> int:
         reasons = "; ".join(str(err["msg"]) for err in exc.errors())
         print(f"error: invalid input: {reasons}", file=sys.stderr)
         return EXIT_BAD_INPUT
-    except (LiteratureSourceError, PersistenceError) as exc:
+    except (LiteratureSourceError, PersistenceError, EmbeddingError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_DEPENDENCY_FAILED
 
@@ -442,6 +465,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             open_repository=SqliteRepository.open,
             default_db=settings.database_path,
+            build_embedding_model=lambda name: FastEmbedModel(
+                name, cache_dir=settings.embedding_cache_dir
+            ),
+            default_embedding_model=settings.embedding_model,
         )
         return run(sys.argv[1:] if argv is None else argv, runtime)
 

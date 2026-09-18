@@ -19,3 +19,5 @@ class Settings(BaseSettings):
     ncbi_api_key: str | None = None
     http_timeout_seconds: float = Field(default=30.0, gt=0)
     database_path: Path = Path("data/bio_copilot.sqlite")
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_cache_dir: Path | None = None
