@@ -1,0 +1,446 @@
+{
+  "benchmark_version": "benchmark_v1",
+  "retriever": "rerank:ncbi/MedCPT-Cross-Encoder(bm25-v1)",
+  "k": 10,
+  "corpus_papers": 60,
+  "corpus_passages": 135,
+  "generated_at": "2026-09-18T01:21:49.175781Z",
+  "judged_questions": 9,
+  "unjudged_questions": [],
+  "mean_precision": 0.45555555555555555,
+  "mean_recall": 0.779193899782135,
+  "mean_mrr": 0.9259259259259259,
+  "mean_ndcg": 0.7884739993473955,
+  "mean_latency_ms": 3607.3265499968934,
+  "by_type": {
+    "comparison": {
+      "questions": 3,
+      "precision": 0.3,
+      "recall": 0.9166666666666666,
+      "mrr": 0.7777777777777778,
+      "ndcg": 0.7737917418169085
+    },
+    "mechanism": {
+      "questions": 3,
+      "precision": 0.6333333333333333,
+      "recall": 0.704248366013072,
+      "mrr": 1.0,
+      "ndcg": 0.855599155129513
+    },
+    "target": {
+      "questions": 3,
+      "precision": 0.43333333333333335,
+      "recall": 0.7166666666666667,
+      "mrr": 1.0,
+      "ndcg": 0.736031101095765
+    }
+  },
+  "unanswerable": [
+    {
+      "id": "q10",
+      "papers_returned": 0,
+      "top_score": null
+    },
+    {
+      "id": "q11",
+      "papers_returned": 10,
+      "top_score": -15.626737594604492
+    },
+    {
+      "id": "q12",
+      "papers_returned": 10,
+      "top_score": -14.571892738342285
+    }
+  ],
+  "results": [
+    {
+      "id": "q01",
+      "topic": "crispr_base_editing",
+      "type": "mechanism",
+      "question": "What mechanisms cause off-target edits by cytosine base editors?",
+      "judged": true,
+      "ranked_papers": [
+        "32630835",
+        "36357717",
+        "40207628",
+        "31911131",
+        "29746416",
+        "31317359",
+        "26735016",
+        "31902584",
+        "40160040",
+        "30912036"
+      ],
+      "relevant": [
+        "36357717",
+        "32630835",
+        "31911131"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.9674679834891693
+      },
+      "top_score": 14.787412643432617,
+      "latency_ms": 4019.4582999974955
+    },
+    {
+      "id": "q02",
+      "topic": "crispr_base_editing",
+      "type": "comparison",
+      "question": "How do adenine base editors compare with cytosine base editors in off-target activity?",
+      "judged": true,
+      "ranked_papers": [
+        "32630835",
+        "36357717",
+        "40207628",
+        "31911131",
+        "26735016",
+        "31317359",
+        "29746416",
+        "31902584",
+        "30912036",
+        "40119516"
+      ],
+      "relevant": [
+        "32630835",
+        "31911131",
+        "40119516"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.8070380459557518
+      },
+      "top_score": 15.772485733032227,
+      "latency_ms": 4623.263400018914
+    },
+    {
+      "id": "q03",
+      "topic": "crispr_base_editing",
+      "type": "target",
+      "question": "Which methods detect genome-wide off-target effects of base editors?",
+      "judged": true,
+      "ranked_papers": [
+        "31911131",
+        "26735016",
+        "29746416",
+        "40207628",
+        "32630835",
+        "37356052",
+        "33626327",
+        "31317359",
+        "31902584",
+        "30912036"
+      ],
+      "relevant": [
+        "40207628",
+        "31911131",
+        "32630835",
+        "36357717"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 0.75,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.7095272044910244
+      },
+      "top_score": 15.91804313659668,
+      "latency_ms": 4137.28500000434
+    },
+    {
+      "id": "q04",
+      "topic": "checkpoint_immunotherapy",
+      "type": "mechanism",
+      "question": "What mechanisms drive resistance to PD-1 blockade in tumors?",
+      "judged": true,
+      "ranked_papers": [
+        "37603905",
+        "40024354",
+        "40154483",
+        "37752135",
+        "33855973",
+        "36177034",
+        "40050048",
+        "39447408",
+        "35062949",
+        "36058143"
+      ],
+      "relevant": [
+        "40024354",
+        "33855973",
+        "37752135",
+        "38403027",
+        "36177034",
+        "35062949",
+        "39447408",
+        "32179091",
+        "36058143",
+        "36601120",
+        "39223929",
+        "40577442",
+        "37831146",
+        "39059396",
+        "40050048",
+        "37603905",
+        "34686340"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.9,
+        "recall": 0.5294117647058824,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.8899541168509599
+      },
+      "top_score": 15.054145812988281,
+      "latency_ms": 4568.89220001176
+    },
+    {
+      "id": "q05",
+      "topic": "checkpoint_immunotherapy",
+      "type": "comparison",
+      "question": "How does combined CTLA-4 and PD-1 blockade compare with PD-1 monotherapy?",
+      "judged": true,
+      "ranked_papers": [
+        "35062949",
+        "39068460",
+        "41478279",
+        "37603905",
+        "36177034",
+        "36058143",
+        "40154483",
+        "32179091",
+        "37831146",
+        "40024354"
+      ],
+      "relevant": [
+        "39068460",
+        "41478279",
+        "35062949"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 1.0,
+        "reciprocal_rank": 1.0,
+        "ndcg": 1.0
+      },
+      "top_score": 8.33328628540039,
+      "latency_ms": 4683.907400001772
+    },
+    {
+      "id": "q06",
+      "topic": "checkpoint_immunotherapy",
+      "type": "target",
+      "question": "Which biomarkers predict response to immune checkpoint inhibitors?",
+      "judged": true,
+      "ranked_papers": [
+        "40154483",
+        "39447408",
+        "36177034",
+        "41478279",
+        "33855973",
+        "37603905",
+        "36601120",
+        "37752135",
+        "40024354",
+        "40050048"
+      ],
+      "relevant": [
+        "40154483",
+        "39447408",
+        "36177034",
+        "37831146",
+        "39223929",
+        "39059396",
+        "33855973",
+        "40050048",
+        "41478279",
+        "36058143"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.6,
+        "recall": 0.6,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.7125523635307982
+      },
+      "top_score": 14.380012512207031,
+      "latency_ms": 4548.809899977641
+    },
+    {
+      "id": "q07",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "mechanism",
+      "question": "How does amyloid beta promote tau pathology in Alzheimer's disease?",
+      "judged": true,
+      "ranked_papers": [
+        "32778792",
+        "36396271",
+        "34239348",
+        "20655099",
+        "32017704",
+        "26921134",
+        "28713158",
+        "38167731",
+        "40767321",
+        "31121890"
+      ],
+      "relevant": [
+        "31121890",
+        "20655099",
+        "40767321",
+        "32778792",
+        "38754634",
+        "32017704",
+        "34239348",
+        "36911732",
+        "38167731",
+        "39137870",
+        "12895417",
+        "39504519"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.7,
+        "recall": 0.5833333333333334,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.7093753650484099
+      },
+      "top_score": 15.847315788269043,
+      "latency_ms": 3662.3817999789026
+    },
+    {
+      "id": "q08",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "comparison",
+      "question": "Does tau pathology or amyloid burden correlate better with cognitive decline?",
+      "judged": true,
+      "ranked_papers": [
+        "36396271",
+        "26921134",
+        "32017704",
+        "32778792",
+        "40767321",
+        "34239348",
+        "39196440",
+        "34719499",
+        "39504519",
+        "38754634"
+      ],
+      "relevant": [
+        "32017704",
+        "40767321",
+        "32778792",
+        "12895417"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.3,
+        "recall": 0.75,
+        "reciprocal_rank": 0.3333333333333333,
+        "ndcg": 0.5143371794949736
+      },
+      "top_score": 12.155252456665039,
+      "latency_ms": 3416.684699972393
+    },
+    {
+      "id": "q09",
+      "topic": "alzheimers_amyloid_tau",
+      "type": "target",
+      "question": "Which kinases phosphorylate tau in Alzheimer's disease?",
+      "judged": true,
+      "ranked_papers": [
+        "34239348",
+        "20655099",
+        "32778792",
+        "40767321",
+        "32017704",
+        "34719499",
+        "31121890",
+        "36396271",
+        "26921134",
+        "37894559"
+      ],
+      "relevant": [
+        "34239348",
+        "40767321",
+        "32778792",
+        "38754634",
+        "32017704"
+      ],
+      "metrics": {
+        "k": 10,
+        "precision": 0.4,
+        "recall": 0.8,
+        "reciprocal_rank": 1.0,
+        "ndcg": 0.7860137352654724
+      },
+      "top_score": 11.11080551147461,
+      "latency_ms": 3584.3335000099614
+    },
+    {
+      "id": "q10",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "What is the optimal water temperature for zebrafish husbandry?",
+      "judged": true,
+      "ranked_papers": [],
+      "relevant": [],
+      "metrics": null,
+      "top_score": null,
+      "latency_ms": 0.12299997615627944
+    },
+    {
+      "id": "q11",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "Which malaria vaccine has the highest efficacy in children?",
+      "judged": true,
+      "ranked_papers": [
+        "29746416",
+        "38403027",
+        "39223929",
+        "40050048",
+        "37603905",
+        "41478279",
+        "39059396",
+        "40154483",
+        "39068460",
+        "36601120"
+      ],
+      "relevant": [],
+      "metrics": null,
+      "top_score": -15.626737594604492,
+      "latency_ms": 1485.969400004251
+    },
+    {
+      "id": "q12",
+      "topic": "none",
+      "type": "unanswerable",
+      "question": "What are the common side effects of statins in elderly patients?",
+      "judged": true,
+      "ranked_papers": [
+        "26921134",
+        "26735016",
+        "36911732",
+        "36396271",
+        "36357717",
+        "32630835",
+        "32778792",
+        "40207628",
+        "31911131",
+        "31317359"
+      ],
+      "relevant": [],
+      "metrics": null,
+      "top_score": -14.571892738342285,
+      "latency_ms": 4556.810000009136
+    }
+  ]
+}

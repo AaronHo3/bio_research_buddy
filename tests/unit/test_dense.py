@@ -12,7 +12,7 @@ import math
 
 import pytest
 
-from bio_research_copilot.adapters.embedding import EmbeddingError
+from bio_research_copilot.adapters.embedding import EmbeddingError, Similarity
 from bio_research_copilot.domain import Passage, SearchQuery, Source
 from bio_research_copilot.retrieval import DenseIndex
 from tests.unit.fakes import FakeEmbeddingModel
@@ -37,8 +37,9 @@ class FixedModel:
 
     name = "fixed-v1"
 
-    def __init__(self, query_vector: list[float]) -> None:
+    def __init__(self, query_vector: list[float], similarity: Similarity = "cosine") -> None:
         self.query_vector = query_vector
+        self.similarity = similarity
 
     def embed_passages(self, texts: list[str]) -> list[list[float]]:
         raise AssertionError("the dense index must not re-embed stored passages")
@@ -133,6 +134,25 @@ def test_all_zero_query_vector_is_rejected() -> None:
     index = DenseIndex([(passage("1:0"), [1.0, 0.0])], FixedModel([0.0, 0.0]))
     with pytest.raises(EmbeddingError, match="all-zero"):
         index.search(SearchQuery(raw="q"))
+
+
+def test_dot_similarity_keeps_magnitude() -> None:
+    """A model trained on the inner product must not have its vectors normalised."""
+    entries = [(passage("1:0"), [3.0, 0.0]), (passage("2:0"), [1.0, 0.0])]
+    query = FixedModel([2.0, 0.0], similarity="dot")
+    results = DenseIndex(entries, query).search(SearchQuery(raw="q"))
+
+    assert [r.passage.chunk_id for r in results] == ["pubmed:1:0", "pubmed:2:0"]
+    assert results[0].score == pytest.approx(6.0)  # 3 * 2, not normalised
+    assert results[1].score == pytest.approx(2.0)
+    assert set(results[0].components) == {"dot"}
+
+
+def test_cosine_similarity_would_tie_those_same_vectors() -> None:
+    entries = [(passage("1:0"), [3.0, 0.0]), (passage("2:0"), [1.0, 0.0])]
+    results = DenseIndex(entries, FixedModel([2.0, 0.0])).search(SearchQuery(raw="q"))
+    assert results[0].score == pytest.approx(results[1].score)
+    assert set(results[0].components) == {"cosine"}
 
 
 def test_all_zero_stored_vector_scores_zero_rather_than_failing() -> None:

@@ -13,7 +13,7 @@ costs nothing and so a missing or unavailable model surfaces as
 from pathlib import Path
 from typing import Any
 
-from bio_research_copilot.adapters.embedding import EmbeddingError
+from bio_research_copilot.adapters.embedding import EmbeddingError, Similarity
 
 DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
 
@@ -26,6 +26,9 @@ class FastEmbedModel:
         cache_dir: Where to keep the downloaded model. Defaults to the
             backend's own cache.
     """
+
+    similarity: Similarity = "cosine"
+    """These models are trained with normalised vectors and compared by cosine."""
 
     def __init__(self, model_name: str = DEFAULT_MODEL, cache_dir: Path | None = None) -> None:
         try:

@@ -305,14 +305,82 @@ This is the most useful thing reranking contributed. A stage that orders results
 
 Roughly one second per query against a fifth of a millisecond for the lexical baseline, about four thousand times slower. Cost is one model call per candidate, so it scales with shortlist depth rather than corpus size. For a user-facing query that is noticeable but acceptable; for an evaluation sweep across many configurations it is the dominant cost.
 
+## MedCPT: does a biomedical model beat a general one?
+
+The reranking analysis blamed a domain mismatch: a model trained on short web-search queries, applied to long questions over biomedical abstracts. MedCPT tests that directly. NCBI trained it on PubMed search logs, on what biomedical researchers actually clicked after issuing a query, and it ships both a bi-encoder pair and a cross-encoder.
+
+The answer differs for the two.
+
+### The cross-encoder confirms the hypothesis
+
+| Reranker over the lexical baseline | nDCG@5 | nDCG@10 | MRR | latency (ms) |
+|---|---|---|---|---|
+| none | 0.760 | **0.826** | **0.944** | 0.2 |
+| general (ms-marco-MiniLM) | 0.747 | 0.782 | 0.852 | 1142 |
+| biomedical (MedCPT) | **0.793** | 0.788 | 0.926 | 3607 |
+
+The biomedical cross-encoder produces the best nDCG at k=5 measured anywhere in this project. It recovers almost all the MRR the general one destroyed, 0.926 against 0.852. The clearest movement is on the question type the general reranker handled worst:
+
+| Comparison questions, nDCG@5 | |
+|---|---|
+| general reranker | 0.549 |
+| biomedical reranker | **0.729** |
+
+The domain explanation held. A cross-encoder trained on biomedical literature does the job the general one could not.
+
+### The bi-encoder appears to refute it, and the appearance is misleading
+
+| Dense retriever | recall@10 | nDCG@10 | MRR |
+|---|---|---|---|
+| bge-small (general) | **0.787** | **0.776** | **0.870** |
+| MedCPT (biomedical) | 0.753 | 0.697 | 0.731 |
+
+Run through this pipeline, the domain-specific encoder is clearly worse. Taken at face value that says specialisation does not pay, which is the opposite of what the cross-encoder just showed.
+
+It is an artifact of a decision made three stages earlier. MedCPT's article encoder is documented as taking a title and an abstract together as a pair. `SectionChunker` (ADR-006) stores the title as one passage and the abstract as another, so the encoder never sees a paper in the shape it was trained on. It scores a bare title against a question, and an abstract stripped of its title.
+
+Ranking whole papers in the documented format, bypassing the chunker entirely:
+
+| MedCPT bi-encoder | recall@10 | nDCG@10 | MRR |
+|---|---|---|---|
+| through this pipeline, chunked | 0.753 | 0.697 | 0.731 |
+| whole papers, title and abstract paired | 0.747 | **0.786** | **0.944** |
+
+Ranking quality jumps by 0.089 nDCG, and reciprocal rank rises from 0.731 to 0.944, matching the best figure in the project. Recall barely moves, which is consistent: recall depends on which papers surface at all, and the format affects how well they are ordered.
+
+So most of MedCPT's apparent deficit was caused by feeding it text in a shape it was not built for. The chunking strategy, chosen for good reasons about citation granularity, has a measured cost that only appeared once a model with a specific input contract was tried.
+
+### What this actually shows
+
+- **Domain-specific models earn their place, where the interface lets them.** The cross-encoder, which takes a query and a text with no format assumptions, wins clearly. The bi-encoder, which expects a particular document shape, loses until it is given one.
+- **A negative result about a model can be a finding about your own pipeline.** The first MedCPT number would have supported "biomedical embeddings are not worth it". That conclusion would have been wrong and would have closed off the better option.
+- **Chunking is not a free choice.** ADR-006 traded a model's preferred input format for citation granularity without knowing it was making that trade. A chunking strategy that keeps the title with the abstract would suit MedCPT and would coarsen citations; both effects are now measurable.
+- **Cost is real.** The biomedical cross-encoder takes about 3.6 seconds per query against 1.1 for the general one and a fifth of a millisecond for the lexical baseline. Model size drives both quality and latency here.
+
+## Summary of everything measured
+
+At k=10 unless stated, on benchmark v1, nine judged questions.
+
+| Configuration | recall@10 | nDCG@10 | nDCG@5 | MRR | latency (ms) |
+|---|---|---|---|---|---|
+| BM25 (baseline) | **0.837** | **0.826** | 0.760 | **0.944** | **0.2** |
+| Dense, bge-small | 0.787 | 0.776 | 0.785 | 0.870 | 3.3 |
+| Dense, MedCPT (chunked) | 0.753 | 0.697 | 0.681 | 0.731 | 12.4 |
+| Hybrid (RRF) | **0.846** | 0.812 | 0.759 | 0.870 | 3.5 |
+| BM25 + general reranker | 0.829 | 0.782 | 0.747 | 0.852 | 1142 |
+| BM25 + MedCPT reranker | 0.779 | 0.788 | **0.793** | 0.926 | 3607 |
+
+No configuration wins everything. The lexical baseline still holds the best nDCG at k=10 and the best MRR, at a thousandth of the cost of anything else. Hybrid fusion holds the best coverage. The biomedical reranker holds the best ranking at k=5. A production choice would depend on whether the answer shows five results or ten, and on what a second of latency is worth.
+
 ### Target to beat
 
-Coverage: 0.846 recall at k=10, against a 0.890 ceiling that fusing deeper could approach. Ordering: 0.944 MRR and 0.826 nDCG at k=10 from the lexical baseline, which nothing since has matched. Reranking's contribution so far is abstention, not ordering.
+Coverage: 0.846 recall at k=10, against a 0.890 union ceiling. Ordering: 0.826 nDCG and 0.944 MRR at k=10, still held by the cheapest method in the project. The clearest untested lead is a chunking strategy that keeps a title with its abstract, which the MedCPT diagnostic suggests is worth about 0.089 nDCG to a model that expects it.
 
 ## Known limitations
 
 - 12 questions is enough to catch gross regressions and to support an error analysis, not to claim statistically significant differences between retrievers.
 - Single judge, so no inter-annotator agreement.
 - No development and test split, so no hyperparameter (such as the fusion constant) can be selected without overfitting. Growing the question set is the prerequisite for tuning anything.
+- Every configuration is compared on the same chunking strategy, which is not neutral between models. The MedCPT diagnostic shows a model with a specific input contract is penalised by it.
 - Judging is exhaustive within a topic but assumes no cross-topic relevance.
 - Titles and abstracts only; full-text relevance is out of scope.

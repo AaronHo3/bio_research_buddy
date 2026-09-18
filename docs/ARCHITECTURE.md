@@ -33,6 +33,8 @@ bio-copilot evaluate <benchmark_dir> [--k N] [--method bm25|dense|hybrid] [--rer
   -> retrieval/fusion.py        ReciprocalRankFusion ("rrf(a+b)"): combines rankings by position
   -> retrieval/rerank.py        RerankingRetriever: cross-encoder reorders a shortlist, never adds to it
   -> adapters/reranking.py      Reranker protocol; fastembed_reranker.py runs a local ONNX cross-encoder
+  -> adapters/medcpt.py         NCBI MedCPT bi-encoder pair and cross-encoder (optional extra)
+  -> adapters/model_factory.py  routes a model name to its backend; MedCPT imported lazily
   -> adapters/literature.py     LiteratureSource protocol + typed error hierarchy
   -> adapters/pubmed.py         esearch (PMIDs, relevance order) -> efetch (XML) -> Paper objects
   -> adapters/resilience.py     RetryPolicy (exponential backoff) + MinIntervalLimiter (NCBI pacing)
@@ -140,8 +142,8 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 
 - Context: Stage 4 needs an embedding model. The realistic options are a hosted API, a local model through PyTorch, or a local model through ONNX.
 - Choice: a local ONNX encoder (`fastembed`) running `BAAI/bge-small-en-v1.5`, 384 dimensions, a 67 MB model and roughly 60 MB of runtime. The provider sits behind an `EmbeddingModel` port with separate passage and query methods.
-- Alternatives: a hosted API costs money per call, needs a key and a network at query time, and lets the provider change the model underneath a recorded evaluation result; PyTorch is roughly 2 GB installed and slows CI noticeably.
-- Consequence: free, offline after the first download, and reproducible, so a benchmark number stays valid indefinitely. Embedding all 135 benchmark passages takes about 8 seconds. Adding NCBI's MedCPT for the domain comparison will require PyTorch, which will be an optional dependency group rather than a default one.
+- Alternatives: a hosted API costs money per call, needs a key and a network at query time, and lets the provider change the model underneath a recorded evaluation result; PyTorch was assumed to be roughly 2 GB installed; measured, the CPU-only build is about 120 MB, so the real cost is model weights rather than the framework.
+- Consequence: free, offline after the first download, and reproducible, so a benchmark number stays valid indefinitely. Embedding all 135 benchmark passages takes about 8 seconds. NCBI's MedCPT was later added for the domain comparison as the optional `medcpt` extra; see ADR-013.
 - The port splits passage and query embedding because retrieval models are often asymmetric: some prepend an instruction to queries, and MedCPT ships two separate encoders. A single method would force those providers to guess, and guessing wrong degrades retrieval silently.
 
 ### ADR-009: Exact brute-force vector search rather than an approximate index
@@ -174,9 +176,18 @@ Browser -> API -> research service -> retrieval pipeline -> evidence set
 - It did contribute one thing decisively. Answerable and unanswerable questions separate by a sign change rather than by a margin on an arbitrary scale, which is a far stronger basis for abstention than either retriever offers.
 - Consequence: kept, off by default, and reported honestly as a negative result for ordering and a positive one for abstention. The next experiment is a cross-encoder trained on biomedical literature, which tests the domain explanation directly.
 
+### ADR-013: MedCPT as an optional extra, and what it revealed about chunking
+
+- Context: the general-purpose cross-encoder made ranking worse and the failure pattern pointed at a domain mismatch. NCBI's MedCPT, trained on PubMed search logs, tests that directly and supplies both a bi-encoder pair and a cross-encoder.
+- Choice: `adapters/medcpt.py` behind the existing ports, installed with `uv sync --extra medcpt`. A name-based factory routes to it so PyTorch is imported only by someone who asks for MedCPT.
+- Two protocol changes were needed. `EmbeddingModel` now declares a `similarity` of `cosine` or `dot`, because MedCPT is trained on the raw inner product and normalising its vectors would discard signal. The existing split between `embed_query` and `embed_passages`, added speculatively in ADR-008, turned out to be required rather than nice to have: MedCPT ships two different networks for the two sides.
+- Measured, and it splits. The cross-encoder confirmed the domain hypothesis, taking the best nDCG at k=5 in the project (0.793) and lifting comparison questions from 0.549 to 0.729. The bi-encoder appeared to refute it, scoring 0.697 nDCG at k=10 against 0.776 for the general model.
+- That appearance was an artifact of ADR-006. MedCPT's article encoder expects a title and abstract together; `SectionChunker` stores them as separate passages, so the encoder never saw a paper in its trained shape. Ranking whole papers in the documented format lifts nDCG to 0.786 and MRR to 0.944, matching the best in the project. Most of the deficit was the pipeline, not the model.
+- Consequence: the chunking strategy now has a measured cost, not just a rationale. A strategy that keeps a title with its abstract would suit models with that contract and would coarsen citation granularity. Both effects can now be measured rather than argued.
+
 ## Open decisions
 
-- Whether a biomedical cross-encoder reverses the reranking result; the general-domain one did not help ordering.
+- Whether a chunking strategy that keeps a title with its abstract is worth the coarser citations; the MedCPT diagnostic suggests it is worth about 0.089 nDCG to a model that expects that format.
 - LLM provider or local model.
 - Frontend framework and deployment target.
 

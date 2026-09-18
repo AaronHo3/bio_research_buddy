@@ -36,6 +36,7 @@ class DenseIndex:
         model: EmbeddingModel,
     ) -> None:
         self._model = model
+        self._similarity = getattr(model, "similarity", "cosine")
         self.name = f"dense:{model.name}"
         # Stable order so equal scores always tie-break the same way.
         ordered = sorted(entries, key=lambda pair: pair[0].chunk_id)
@@ -45,7 +46,9 @@ class DenseIndex:
             if len(dimensions) > 1:
                 msg = f"stored vectors have differing sizes: {sorted(dimensions)}"
                 raise EmbeddingError(msg)
-            self._matrix = _unit_rows(np.array([list(v) for _, v in ordered], dtype=np.float32))
+            matrix = np.array([list(v) for _, v in ordered], dtype=np.float32)
+            # Normalising only makes sense for a model trained that way; see Similarity.
+            self._matrix = _unit_rows(matrix) if self._similarity == "cosine" else matrix
         else:
             self._matrix = np.zeros((0, 0), dtype=np.float32)
 
@@ -67,7 +70,7 @@ class DenseIndex:
         if norm == 0.0:
             msg = f"{self._model.name} produced an all-zero query vector"
             raise EmbeddingError(msg)
-        scores = self._matrix @ (vector / norm)
+        scores = self._matrix @ (vector / norm if self._similarity == "cosine" else vector)
 
         # Descending score, then chunk_id, which the stable sort already gives us.
         order = np.argsort(-scores, kind="stable")[: query.max_results]
@@ -76,7 +79,7 @@ class DenseIndex:
                 passage=self._passages[int(i)],
                 rank=rank,
                 score=float(scores[int(i)]),
-                components={"cosine": float(scores[int(i)])},
+                components={self._similarity: float(scores[int(i)])},
                 method=self.name,
             )
             for rank, i in enumerate(order, start=1)

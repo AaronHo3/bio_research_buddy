@@ -4,7 +4,7 @@ import hashlib
 import math
 from collections.abc import Callable
 
-from bio_research_copilot.adapters.embedding import EmbeddingError
+from bio_research_copilot.adapters.embedding import EmbeddingError, Similarity
 from bio_research_copilot.adapters.reranking import RerankerError
 
 
@@ -32,9 +32,12 @@ class FakeEmbeddingModel:
     retrieval quality is never asserted against this.
     """
 
-    def __init__(self, name: str = "fake-v1", dimension: int = 8) -> None:
+    def __init__(
+        self, name: str = "fake-v1", dimension: int = 8, similarity: Similarity = "cosine"
+    ) -> None:
         self.name = name
         self.dimension = dimension
+        self.similarity = similarity
         self.batches: list[list[str]] = []
         self.queries: list[str] = []
         self.fail_with: Exception | None = None

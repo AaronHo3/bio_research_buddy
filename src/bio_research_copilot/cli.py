@@ -18,12 +18,13 @@ import httpx
 from pydantic import ValidationError
 
 from bio_research_copilot.adapters.embedding import EmbeddingError, EmbeddingModel
-from bio_research_copilot.adapters.fastembed_model import DEFAULT_MODEL, FastEmbedModel
-from bio_research_copilot.adapters.fastembed_reranker import (
-    DEFAULT_RERANK_MODEL,
-    FastEmbedReranker,
-)
+from bio_research_copilot.adapters.fastembed_model import DEFAULT_MODEL
+from bio_research_copilot.adapters.fastembed_reranker import DEFAULT_RERANK_MODEL
 from bio_research_copilot.adapters.literature import LiteratureSource, LiteratureSourceError
+from bio_research_copilot.adapters.model_factory import (
+    build_embedding_model,
+    build_reranker,
+)
 from bio_research_copilot.adapters.persistence import PaperRepository, PersistenceError
 from bio_research_copilot.adapters.pubmed import PubMedClient, parse_efetch_xml
 from bio_research_copilot.adapters.reranking import Reranker, RerankerError
@@ -70,9 +71,9 @@ class Runtime:
     source: LiteratureSource
     open_repository: Callable[[Path], AbstractContextManager[PaperRepository]]
     default_db: Path
-    build_embedding_model: Callable[[str], EmbeddingModel] = FastEmbedModel
+    build_embedding_model: Callable[[str], EmbeddingModel] = build_embedding_model
     default_embedding_model: str = DEFAULT_MODEL
-    build_reranker: Callable[[str], Reranker] = FastEmbedReranker
+    build_reranker: Callable[[str], Reranker] = build_reranker
     default_rerank_model: str = DEFAULT_RERANK_MODEL
 
 
@@ -532,11 +533,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             open_repository=SqliteRepository.open,
             default_db=settings.database_path,
-            build_embedding_model=lambda name: FastEmbedModel(
+            build_embedding_model=lambda name: build_embedding_model(
                 name, cache_dir=settings.embedding_cache_dir
             ),
             default_embedding_model=settings.embedding_model,
-            build_reranker=lambda name: FastEmbedReranker(
+            build_reranker=lambda name: build_reranker(
                 name, cache_dir=settings.embedding_cache_dir
             ),
             default_rerank_model=settings.rerank_model,
