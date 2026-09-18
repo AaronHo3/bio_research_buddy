@@ -376,6 +376,94 @@ No configuration wins everything. The lexical baseline still holds the best nDCG
 
 Coverage: 0.846 recall at k=10, against a 0.890 union ceiling. Ordering: 0.826 nDCG and 0.944 MRR at k=10, still held by the cheapest method in the project. The clearest untested lead is a chunking strategy that keeps a title with its abstract, which the MedCPT diagnostic suggests is worth about 0.089 nDCG to a model that expects it.
 
+## Synthesis: does a language model beat the extractive baseline?
+
+Everything above measures retrieval. This measures what is done with what was retrieved. Three providers, same BM25 retrieval, same eight-passage evidence budget, all 12 questions.
+
+Citation *integrity* is deliberately not in the table. `ResearchAnswer` refuses to hold a citation pointing outside its own evidence, so integrity is 100% by construction for every provider and reporting it would be measuring a tautology. The column that replaces it counts fabrication *attempts*: evidence ids a provider returned that it was never given.
+
+| | Extractive | Sonnet 5 | Haiku 4.5 |
+|---|---|---|---|
+| Answered, of 9 answerable | 9 | 8 | 6 |
+| Abstained, of 3 unanswerable | 1 | **3** | **3** |
+| False answers | **2** | 0 | 0 |
+| False abstentions | 0 | 1 | 3 |
+| Cited papers judged relevant | 0.663 | **0.775** | 0.722 |
+| Claims per answer | 5.0 | 5.0 | 3.7 |
+| Fabrication attempts | 0 | 0 | 0 |
+| Tokens (12 questions) | 0 | 38,290 in / 5,454 out | 29,781 in / 2,010 out |
+| Mean latency | 6 ms | 4,617 ms | 1,705 ms |
+
+### The headline result is about safety, not fluency
+
+The expected argument for a language model was that it writes better claims, and it does. The more important result is that it refuses better.
+
+The extractive baseline answered two of the three questions the benchmark marks unanswerable. Asked which malaria vaccine has the highest efficacy in children, it returned claims about checkpoint-inhibitor efficacy and faecal microbiota transplantation. Asked about statin side effects in elderly patients, it returned a lifestyle-intervention trial in non-demented elderly patients and a lung cancer abstract. It matched on *efficacy*, on *elderly*, on *common*, and had no way to notice that none of the papers were about the subject of the question.
+
+Both language models abstained on all three. That is the failure mode that matters most for a biomedical tool: confidently answering a question the corpus cannot support is worse than answering nothing, and it is exactly what term overlap cannot detect.
+
+### The cost of refusing well is refusing too often
+
+Haiku abstained on three answerable questions to Sonnet's one, and produced 3.7 claims per answer against 5.0. It is roughly 2.7 times faster and uses a third of the output tokens, and it loses a third of the answerable questions. Both models refused q09, *which kinases phosphorylate tau in Alzheimer's disease* — a question the corpus does contain evidence for, so that refusal is a retrieval-plus-judgment failure worth examining rather than a model defect alone.
+
+For a research assistant, a false abstention costs a user one question. A false answer costs them their trust in every other answer. On that asymmetry Sonnet is the right default, which is what ADR-015 chose before any of these numbers existed.
+
+### Comparison questions are still the weakest type, everywhere
+
+Citation precision on comparison questions is 0.467 extractive, 0.578 Sonnet, 0.500 Haiku — the worst of the four types under every provider, exactly as retrieval evaluation found at Stage 4. Better synthesis does not repair evidence that was not retrieved. This is the clearest demonstration in the project that the two stages fail independently.
+
+### Zero fabrication attempts, and what that is not
+
+Across 24 model calls, neither model returned a single evidence id it had not been given. That is a good sign and it is not a measured rate: zero events in 24 calls supports no estimate of how often it would happen at scale. The machinery that catches it is tested against synthetic fabrication in the unit suite, because the live runs never exercised it.
+
+### Faithfulness is not measured here
+
+Whether a claim actually follows from the passage it cites needs judgment and is not in this table. The evaluation writes every claim out with the full text it cites, so judging runs against a fixed artifact rather than a fresh generation that may word things differently. That is the next piece of work, and until it exists the project's central claim is supported by construction for the extractive provider and unverified for the language models.
+
+## Faithfulness: does a claim follow from the passage it cites?
+
+Citation correctness asks whether the cited paper was relevant to the question. Faithfulness asks something narrower: granted this passage, does this claim follow from it? A claim can cite an entirely relevant paper and still say more than that paper said.
+
+A model judge scores every claim against its cited passages, with three verdicts. `partially_supported` exists because the interesting failure is rarely a flat contradiction; it is a claim that generalises past its evidence. The judge is shown the claim and the passages and deliberately *not* the question, so it cannot reward a claim for being a good answer.
+
+Using a model to grade a model is a real weakness. It is handled below by a control and by human validation, not by assertion.
+
+| | Extractive | Sonnet 5 | Haiku 4.5 |
+|---|---|---|---|
+| Claims judged | 55 | 40 | 22 |
+| Supported | 53 | 28 | 20 |
+| Partially supported | 0 | 11 | 1 |
+| Unsupported | 2 | 1 | 1 |
+| Strict rate | 0.964 | 0.700 | **0.909** |
+| Lenient rate | 0.964 | **0.975** | 0.955 |
+
+### The control, and what it caught
+
+The extractive provider is a positive control: its claims are sentences copied verbatim out of the passage they cite, so a judge that works must score them as supported. Splitting its 55 claims by kind is decisive.
+
+- 37 claims that are one sentence inside a longer passage: **37 supported, 0 otherwise.** The judge is reliable where the task is well posed.
+- 18 claims identical to their entire passage, all of them titles: **16 supported, 2 unsupported.**
+
+Identical inputs, inconsistent verdicts. The judge's stated reason for both refusals is that a title restating itself carries no evidence, which is a defensible position — but it took that position 2 times out of 18. So the judge has an error rate of roughly 11% on this class and 0% off it, and the class exists only because ADR-006 chunking emits titles as standalone passages. A second measurement now points at that decision.
+
+### Haiku is more faithful than Sonnet, and that is not a contradiction
+
+Sonnet's strict rate is 0.700 against Haiku's 0.909, which inverts the obvious expectation. The lenient rates are nearly identical, 0.975 and 0.955, and the claim counts explain the gap: Sonnet made 40 claims and Haiku 22.
+
+Sonnet is expansive. It writes more claims, combines more, and 11 of them reach past their evidence — adding a causal reading where the passage reports an association, or attaching a consequence the passage does not state. Haiku is conservative: it refuses more questions, writes fewer claims per answer, and the ones it writes stay close to the text.
+
+This is the same tradeoff as the abstention table seen from the other side. Sonnet answers more and overreaches more; Haiku answers less and overreaches less. Neither is simply better, and a product decision here depends on whether a reader is better served by more coverage or by tighter claims.
+
+### Both models made the same error, on the same passage
+
+The single `unsupported` verdict for each model is the same claim, q04:2, and the same mistake: both stated that PARP14 enhances effector T cell infiltration, when the passage says that PARP14 *inhibition* enhances it. Both inverted the direction of the effect while reading a sentence about knockdown experiments.
+
+That two independent models failed identically on one passage and nowhere else suggests the failure is a property of the passage rather than of either model. It is also the most dangerous error class in this project: a fluent, correctly cited, confidently stated inversion of a result. Term overlap would never catch it; the citation-integrity type cannot catch it; only reading the passage catches it.
+
+### What these numbers are not yet
+
+Every figure above is one model's opinion of another model's output. A sample of 20 of Sonnet's 40 claims has been drawn with a fixed seed for hand labelling, and the agreement between human and judge is not yet measured. Until it is, the strict and lenient rates should be read as indicative and the control result above as the only validated claim about the judge.
+
 ## Known limitations
 
 - 12 questions is enough to catch gross regressions and to support an error analysis, not to claim statistically significant differences between retrievers.
@@ -384,3 +472,8 @@ Coverage: 0.846 recall at k=10, against a 0.890 union ceiling. Ordering: 0.826 n
 - Every configuration is compared on the same chunking strategy, which is not neutral between models. The MedCPT diagnostic shows a model with a specific input contract is penalised by it.
 - Judging is exhaustive within a topic but assumes no cross-topic relevance.
 - Titles and abstracts only; full-text relevance is out of scope.
+- Synthesis results come from one run per provider. The SDK exposes no temperature control, so the numbers are not exactly reproducible; abstention decisions in particular could differ on a re-run.
+- Faithfulness is unmeasured. Citation correctness says a cited paper was relevant to the question, not that the claim follows from it.
+- Zero fabrication attempts in 24 calls is not evidence of a low fabrication rate.
+- Faithfulness verdicts come from a model judge whose agreement with a human has not yet been measured. The extractive control validates it on well-posed claims and shows an error rate of about 11% on title-only passages.
+- The judge and the synthesizer under test are the same model family, which may bias verdicts in a direction the control cannot detect.

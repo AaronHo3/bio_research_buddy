@@ -651,6 +651,68 @@ def write_benchmark(path: Path, questions: list[dict[str, object]]) -> Path:
     return path
 
 
+def test_evaluate_synthesis_reports_abstention_citations_and_cost(
+    db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db)
+    run(["load-corpus", str(FIXTURES / "pubmed" / "efetch_crispr.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    bench = write_benchmark(
+        tmp_path / "questions.json",
+        [
+            {
+                "id": "q1",
+                "topic": "crispr",
+                "type": "mechanism",
+                "question": ANSWERABLE,
+                "relevant": [RECORDED_PAPERS[0].source_id],
+            },
+            {"id": "q2", "topic": "none", "type": "unanswerable", "question": "zebrafish"},
+        ],
+    )
+    assert run(["evaluate-synthesis", str(bench), "--db", str(db)], rt) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "answerable 1: answered 1, refused 0" in out
+    assert "unanswerable 1: abstained 1, answered 0" in out
+    assert "fabrication attempts" in out
+    assert "Faithfulness is not scored here" in out
+
+
+def test_evaluate_synthesis_writes_claims_with_their_cited_text(
+    db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(RECORDED_PAPERS), db)
+    run(["load-corpus", str(FIXTURES / "pubmed" / "efetch_crispr.xml"), "--db", str(db)], rt)
+    capsys.readouterr()
+    bench = write_benchmark(
+        tmp_path / "questions.json",
+        [
+            {
+                "id": "q1",
+                "topic": "crispr",
+                "type": "mechanism",
+                "question": ANSWERABLE,
+                "relevant": [RECORDED_PAPERS[0].source_id],
+            }
+        ],
+    )
+    out_path = tmp_path / "report.json"
+    run(["evaluate-synthesis", str(bench), "--out", str(out_path), "--db", str(db)], rt)
+    report = json.loads(out_path.read_text(encoding="utf-8"))
+    claim = report["results"][0]["claims"][0]
+    assert claim["claim"]
+    assert claim["cited"][0]["text"]
+
+
+def test_evaluate_synthesis_missing_benchmark_is_exit_2(
+    db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rt = runtime(StubSource(), db)
+    argv = ["evaluate-synthesis", str(tmp_path / "nope.json"), "--db", str(db)]
+    assert run(argv, rt) == EXIT_BAD_INPUT
+    assert "not found" in capsys.readouterr().err
+
+
 def test_judge_lists_only_unjudged_questions(
     db: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

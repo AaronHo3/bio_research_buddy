@@ -28,3 +28,4 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     llm_model: str = "claude-sonnet-5"
     llm_max_tokens: int = Field(default=1024, gt=0)
+    judge_model: str = "claude-sonnet-5"

@@ -40,6 +40,15 @@ from bio_research_copilot.application import (
     search_papers,
 )
 from bio_research_copilot.application.evaluate import collapse_to_papers
+from bio_research_copilot.application.evaluate_synthesis import (
+    SynthesisReport,
+    evaluate_synthesis,
+)
+from bio_research_copilot.application.judge_faithfulness import (
+    FaithfulnessReport,
+    build_worksheet,
+    judge_report,
+)
 from bio_research_copilot.application.query import (
     RetrieverFactory,
     build_bm25,
@@ -69,7 +78,15 @@ from bio_research_copilot.synthesis import (
     SynthesisProvider,
     build_llm_synthesizer,
 )
+from bio_research_copilot.synthesis.faithfulness import (
+    DEFAULT_JUDGE_MODEL,
+    FaithfulnessJudge,
+    LlmFaithfulnessJudge,
+    build_judge,
+)
 from bio_research_copilot.synthesis.llm import LlmSynthesizer
+
+NEWLINE = chr(10)
 
 DISCLAIMER = "For research and educational use only. Not medical advice."
 
@@ -92,6 +109,8 @@ class Runtime:
     default_rerank_model: str = DEFAULT_RERANK_MODEL
     build_synthesizer: Callable[[str], SynthesisProvider] = build_llm_synthesizer
     default_llm_model: str = DEFAULT_LLM_MODEL
+    build_judge: Callable[[str], FaithfulnessJudge] = build_judge
+    default_judge_model: str = DEFAULT_JUDGE_MODEL
 
 
 def build_parser(default_db: Path) -> argparse.ArgumentParser:
@@ -288,6 +307,65 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
     evaluate.add_argument(
         "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
     )
+
+    synth = subparsers.add_parser(
+        "evaluate-synthesis",
+        help="Score a synthesis provider on a benchmark: abstention, citations, cost.",
+    )
+    synth.add_argument("benchmark", type=Path, help="Benchmark directory or questions.json.")
+    synth.add_argument(
+        "--synthesis",
+        choices=("extractive", "llm"),
+        default="extractive",
+        help="Provider to score (default: extractive, which needs no API key).",
+    )
+    synth.add_argument("--llm-model", default=None, help="Model name, for --synthesis llm.")
+    synth.add_argument(
+        "--k", type=int, default=8, help="Passages retrieved as evidence (default: 8)."
+    )
+    synth.add_argument(
+        "--method",
+        choices=("bm25", "dense", "hybrid"),
+        default="bm25",
+        help="Retrieval method feeding synthesis (default: bm25).",
+    )
+    synth.add_argument("--model", default=None, help="Embedding model, for dense and hybrid.")
+    synth.add_argument(
+        "--rerank", action="store_true", help="Reorder the shortlist before synthesis."
+    )
+    synth.add_argument("--rerank-model", default=None, help="Cross-encoder model, for --rerank.")
+    synth.add_argument(
+        "--rerank-pool", type=int, default=25, help="Candidates to rerank (default: 25)."
+    )
+    synth.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Write the full JSON report here, including every claim and its cited text.",
+    )
+    synth.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
+
+    faith = subparsers.add_parser(
+        "judge-faithfulness",
+        help="Judge whether each claim in a synthesis report follows from its cited passages.",
+    )
+    faith.add_argument("report", type=Path, help="A report written by evaluate-synthesis --out.")
+    faith.add_argument(
+        "--worksheet",
+        type=Path,
+        default=None,
+        help="Write a sample for hand labelling and stop. Needs no API key.",
+    )
+    faith.add_argument(
+        "--sample", type=int, default=20, help="Claims to draw for --worksheet (default: 20)."
+    )
+    faith.add_argument(
+        "--seed", type=int, default=1, help="Sampling seed, fixed so a draw is repeatable."
+    )
+    faith.add_argument("--judge-model", default=None, help="Model used to judge.")
+    faith.add_argument("--out", type=Path, default=None, help="Write the full JSON report here.")
     return parser
 
 
@@ -541,6 +619,140 @@ def _cmd_evaluate(args: argparse.Namespace, runtime: Runtime) -> int:
     return EXIT_OK
 
 
+def render_synthesis_summary(report: SynthesisReport) -> str:
+    """The scoreboard. Citation integrity is absent on purpose: see the module docstring."""
+    a = report.abstention
+    lines = [
+        f"Benchmark {report.benchmark_version}"
+        f"  retrieval={report.retriever}  synthesis={report.synthesizer}",
+        f"Questions: {report.questions}",
+        "",
+        "Abstention",
+        f"  answerable {a.answerable}: answered {a.answered}, refused {a.false_abstentions}",
+        f"  unanswerable {a.unanswerable}: abstained {a.abstained}, answered {a.false_answers}",
+    ]
+    if a.false_answers:
+        lines.append("  WARNING: answered a question the benchmark marks unanswerable")
+
+    precision = report.mean_citation_precision
+    lines += [
+        "",
+        "Citations",
+        f"  cited papers judged relevant: {_pct(precision)}",
+        f"  claims per answer: {report.mean_claims_per_answer:.1f}"
+        f"  papers per answer: {report.mean_papers_per_answer:.1f}",
+        f"  fabrication attempts (ids not supplied): {report.unsupported_citations}",
+        "",
+        "Cost",
+        f"  tokens: {report.total_input_tokens} in / {report.total_output_tokens} out",
+        f"  mean latency: {report.mean_latency_ms:.0f} ms per question",
+        "",
+        "By question type",
+    ]
+    for qtype, summary in report.by_type.items():
+        lines.append(
+            f"  {qtype:<13} answered {summary.answered}/{summary.questions}"
+            f"  claims {summary.mean_claims:.1f}"
+            f"  citation precision {_pct(summary.mean_citation_precision)}"
+        )
+    lines += [
+        "",
+        "Faithfulness is not scored here; it needs judgment. Use --out and judge the claims.",
+    ]
+    return "\n".join(lines)
+
+
+def _pct(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:.3f}"
+
+
+def _cmd_evaluate_synthesis(args: argparse.Namespace, runtime: Runtime) -> int:
+    if not args.benchmark.exists():
+        print(f"error: cannot read {args.benchmark}: not found", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    benchmark = load_benchmark(args.benchmark)
+    build = _retriever_factory(args, runtime)
+    provider = _synthesizer(args, runtime)
+    with runtime.open_repository(args.db) as repository:
+        report = evaluate_synthesis(
+            repository,
+            benchmark,
+            build_retriever=build,
+            synthesizer=provider,
+            evidence_limit=args.k,
+        )
+    print(render_synthesis_summary(report))
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(
+            json.dumps(report.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        print(f"report written to {args.out}")
+    return EXIT_OK
+
+
+def render_faithfulness_summary(report: FaithfulnessReport) -> str:
+    lines = [
+        f"Synthesis {report.synthesizer}  judged by {report.judge}",
+        f"Claims: {report.claims}",
+        "",
+        f"  supported            {report.supported}",
+        f"  partially supported  {report.partially_supported}",
+        f"  unsupported          {report.unsupported}",
+        "",
+        f"  strict  (supported only)       {report.strict_rate:.3f}",
+        f"  lenient (supported or partial) {report.lenient_rate:.3f}",
+        "",
+        f"  judge tokens: {report.input_tokens} in / {report.output_tokens} out",
+        "",
+        "Strict rate by question type",
+    ]
+    lines += [f"  {qtype:<13} {rate:.3f}" for qtype, rate in report.by_type.items()]
+    lines += [
+        "",
+        "A model graded a model. Label a sample by hand and compare before trusting these.",
+    ]
+    return NEWLINE.join(lines)
+
+
+def _cmd_judge_faithfulness(args: argparse.Namespace, runtime: Runtime) -> int:
+    if not args.report.exists():
+        print(f"error: cannot read {args.report}: not found", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    source = SynthesisReport.model_validate_json(args.report.read_text(encoding="utf-8"))
+
+    if args.worksheet is not None:
+        try:
+            sheet = build_worksheet(source, size=args.sample, seed=args.seed)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_BAD_INPUT
+        _write_json(args.worksheet, sheet.model_dump(mode="json"))
+        print(
+            f"{len(sheet.items)} of {sheet.population} claims written to {args.worksheet}."
+            " Fill in each verdict field, then compare."
+        )
+        return EXIT_OK
+
+    judge = runtime.build_judge(args.judge_model or runtime.default_judge_model)
+    try:
+        report = judge_report(source, judge.judge, judge.name)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    print(render_faithfulness_summary(report))
+    if args.out is not None:
+        _write_json(args.out, report.model_dump(mode="json"))
+        print(f"report written to {args.out}")
+    return EXIT_OK
+
+
+def _write_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + NEWLINE, encoding="utf-8")
+
+
 def _cmd_embed(args: argparse.Namespace, runtime: Runtime) -> int:
     model = runtime.build_embedding_model(args.model or runtime.default_embedding_model)
     with runtime.open_repository(args.db) as repository:
@@ -649,6 +861,8 @@ _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "judge": _cmd_judge,
     "embed": _cmd_embed,
     "evaluate": _cmd_evaluate,
+    "evaluate-synthesis": _cmd_evaluate_synthesis,
+    "judge-faithfulness": _cmd_judge_faithfulness,
 }
 
 
@@ -712,6 +926,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_tokens=settings.llm_max_tokens,
             ),
             default_llm_model=settings.llm_model,
+            build_judge=lambda name: LlmFaithfulnessJudge(
+                api_key=settings.anthropic_api_key, model=name
+            ),
+            default_judge_model=settings.judge_model,
         )
         return run(sys.argv[1:] if argv is None else argv, runtime)
 

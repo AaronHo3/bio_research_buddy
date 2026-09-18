@@ -1,0 +1,462 @@
+{
+  "synthesizer": "anthropic:claude-sonnet-5",
+  "judge": "anthropic:claude-sonnet-5",
+  "generated_at": "2026-09-18T02:43:46.666936Z",
+  "claims": 40,
+  "supported": 28,
+  "partially_supported": 11,
+  "unsupported": 1,
+  "strict_rate": 0.7,
+  "lenient_rate": 0.975,
+  "input_tokens": 60054,
+  "output_tokens": 6588,
+  "by_type": {
+    "comparison": 0.7333333333333333,
+    "mechanism": 0.6,
+    "target": 0.8
+  },
+  "verdicts": [
+    {
+      "key": "q01:0",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "In cytosine base editors (CBEs), the deaminase component derived from the AID/APOBEC (activation-induced cytidine deaminase/apolipoprotein B mRNA-editing enzyme catalytic polypeptide-like) protein family is responsible for causing considerable off-target effects and indels.",
+      "evidence_ids": [
+        "pubmed:36357717:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states that \"the AID/APOBEC ... protein family deaminase component induces considerable off-target effects and indels,\" directly matching the claim."
+    },
+    {
+      "key": "q01:1",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "Td-CGBE/Td-CBEs, which use a re-engineered adenine deaminase (TadA-8e with an N46L variant) instead of the natural AID/APOBEC deaminase, show only a background level of Cas9-dependent or Cas9-independent DNA/RNA off-target editing and very low indel effects, suggesting that the choice of deaminase component underlies off-target activity in cytosine base editors.",
+      "evidence_ids": [
+        "pubmed:36357717:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage supports that Td-CGBE/Td-CBEs use TadA-8e with N46L, show background-level off-target editing and low indels; but the causal generalization that 'the choice of deaminase component underlies off-target activity in cytosine base editors' is an inference not explicitly stated—the passage only notes AID/APOBEC 'induces considerable off-target effects' without asserting deaminase choice as the general determinant of off-target activity across CBEs.\""
+    },
+    {
+      "key": "q01:2",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "Approaches to reduce off-target effects of CRISPR-based genome editing tools, including cytosine base editors, have been developed, encompassing off-target detection methods, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein delivery, and truncated gRNAs.",
+      "evidence_ids": [
+        "pubmed:32630835:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly lists \"biased or unbiased off-target detection, cytosine or adenine base editors, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein (RNP) delivery and truncated gRNAs\" as approaches to reduce off-target effects, matching all elements the claim enumerates."
+    },
+    {
+      "key": "q02:0",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Cytosine base editors (CBEs) efficiently generate precise C·G-to-T·A base conversions, but the AID/APOBEC deaminase component they use induces considerable off-target effects and indels.",
+      "evidence_ids": [
+        "pubmed:36357717:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim directly restates the passage's first sentence verbatim in meaning: CBEs generate precise C·G-to-T·A conversions, but the AID/APOBEC deaminase component induces considerable off-target effects and indels."
+    },
+    {
+      "key": "q02:1",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "To reduce off-target effects associated with conventional cytosine deaminases, researchers repurposed the adenine deaminase TadA-8e for cytosine base editing, creating Td-CGBE and Td-CBE variants that show very low indel effects and only background levels of Cas9-dependent or Cas9-independent DNA/RNA off-target editing, with some variants matching the activity of BE4max or exceeding the precision of other reported accurate CBEs.",
+      "evidence_ids": [
+        "pubmed:36357717:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim closely paraphrases the passage: repurposing TadA-8e to address AID/APOBEC off-target effects, creating Td-CGBE/Td-CBEs with 'very low indel effects and a background level of Cas9-dependent or Cas9-independent DNA/RNA off-target editing,' and having 'a high activity similar to that of BE4max or with higher precision compared to other reported accurate CBEs.'"
+    },
+    {
+      "key": "q02:2",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Adenosine base editors (ABEs) enable A·T to G·C conversions and avoid the double-strand breaks caused by CRISPR-Cas9, but their off-target editing effects have remained inadequately characterized.",
+      "evidence_ids": [
+        "pubmed:40207628:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage directly states ABEs \"facilitate A·T to G·C base pair conversion,\" that unlike Cas9 they avoid double-strand breaks (\"Unlike CRISPR-Cas9 systems that induce double-strand breaks, ABEs operate through precise deamination, avoiding chromosomal instability\"), and explicitly says \"the off-target editing effects of ABEs remain inadequately characterized,\" matching all parts of the claim."
+    },
+    {
+      "key": "q02:3",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "A new biochemical method called Selict-seq was developed to evaluate genome-wide off-target editing by ABEs, and it identified numerous unexpected off-target edits both within and outside the protospacer regions across three single-guide RNAs tested.",
+      "evidence_ids": [
+        "pubmed:40207628:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states Selict-seq was 'designed to evaluate genome-wide off-target editing by ABEs' and that 'through investigations involving three single-guide RNAs, we identified numerous unexpected off-target edits both within and outside the protospacer regions,' directly matching the claim."
+    },
+    {
+      "key": "q02:4",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Using Selict-seq, the ABE variant ABE8e(V106W) exhibited distinct off-target characteristics, including high editing rates (>10%) at previously unreported sites such as RNF2 and EMX1, as well as out-of-protospacer mutations.",
+      "evidence_ids": [
+        "pubmed:40207628:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states nearly verbatim that 'ABE8e(V106W) exhibited distinct off-target characteristics, including high editing rates (>10%) at previously unreported sites (e.g. RNF2 and EMX1) and out-of-protospacer mutations,' and this was identified using the Selict-seq method described."
+    },
+    {
+      "key": "q02:5",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Reviews of gene-editing off-target mitigation strategies note that both cytosine and adenine base editors are among the approaches developed to reduce off-target effects compared to conventional nuclease-based CRISPR/Cas9 systems, though the passages do not provide a direct quantitative comparison of off-target rates between the two editor classes.",
+      "evidence_ids": [
+        "pubmed:32630835:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly lists \"cytosine or adenine base editors\" among approaches \"to reduce the off-target effects\" of CRISPR/Cas9, and it does not provide any quantitative comparison of off-target rates between the two editor types, matching the claim's hedge."
+    },
+    {
+      "key": "q03:0",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "Selict-seq is a biochemical method designed to evaluate genome-wide off-target editing by adenosine base editors (ABEs) by specifically capturing deoxyinosine-containing single-stranded DNA and precisely identifying deoxyadenosine-to-deoxyinosine (dA-to-dI) mutation sites, allowing unbiased analysis of the ABE editome both within and outside protospacer regions.",
+      "evidence_ids": [
+        "pubmed:40207628:0",
+        "pubmed:40207628:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states Selict-seq is \"a biochemical method... designed to evaluate genome-wide off-target editing by ABEs\" that \"specifically captures deoxyinosine-containing single-stranded DNA and precisely identifies deoxyadenosine-to-deoxyinosine (dA-to-dI) mutation sites,\" enables \"unbiased analysis of the ABE editome,\" and identified \"off-target edits both within and outside the protospacer regions,\" all matching the claim."
+    },
+    {
+      "key": "q03:1",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "Reviews of CRISPR/base editing note that off-target detection strategies can be categorized as biased or unbiased detection approaches, and these are discussed alongside base editor design strategies (cytosine or adenine base editors) as ways to characterize and reduce off-target effects.",
+      "evidence_ids": [
+        "pubmed:32630835:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly lists 'biased or unbiased off-target detection' and 'cytosine or adenine base editors' together as approaches reviewed to reduce off-target effects, matching the claim's content."
+    },
+    {
+      "key": "q03:2",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "General reviews of CRISPR genome editing outline various off-target detection strategies developed to address the challenge of off-target effects, discussing their merits and limitations for gene editing research.",
+      "evidence_ids": [
+        "pubmed:31911131:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states the review outlines off-target detection strategies and discusses 'the merits and limitations of off-target detection methods' for gene editing research, matching the claim closely."
+    },
+    {
+      "key": "q03:3",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "A review focused on ophthalmology applications of CRISPR discusses off-targeting detection methods as part of assessing unintended genetic changes during CRISPR genome surgery.",
+      "evidence_ids": [
+        "pubmed:29746416:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states the review covers \"off-targeting detection methods and CRISPR's place in the clinical setting, specifically in the field of ophthalmology,\" and links this to concerns about \"unintended genetic changes, as in off-target mutagenesis, during CRISPR genome surgery,\" matching the claim."
+    },
+    {
+      "key": "q03:4",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "For cytosine base editors (CBEs), off-target effects including DNA/RNA off-target editing (both Cas9-dependent and Cas9-independent) and indels have been characterized, with engineered variants such as Td-CGBE/Td-CBEs showing very low indel effects and background-level off-target editing.",
+      "evidence_ids": [
+        "pubmed:36357717:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states CBEs' AID/APOBEC deaminase induces off-target effects and indels, and explicitly says Td-CGBE/Td-CBEs 'show very low indel effects and a background level of Cas9-dependent or Cas9-independent DNA/RNA off-target editing,' matching the claim."
+    },
+    {
+      "key": "q04:0",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "In non-small cell lung cancer, resistance to PD-1/PD-L1 blockade can be understood through the cancer-immunity cycle, a seven-step process from antigen release to T cell recognition and killing of tumor cells, where alterations at each stage can result in resistance.",
+      "evidence_ids": [
+        "pubmed:40024354:1"
+      ],
+      "verdict": "supported",
+      "reason": "Passage states the cancer-immunity cycle \"describes the process from antigen release to T cell recognition and killing of the tumor,\" consists of seven steps, and \"alterations at each stage can result in resistance,\" matching the claim directly."
+    },
+    {
+      "key": "q04:1",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "Tumors with high expression of the receptor tyrosine kinase TYRO3 exhibit resistance to anti-PD-1/PD-L1 therapy, with TYRO3 inhibiting tumor cell ferroptosis triggered by anti-PD-1/PD-L1 and reducing the M1/M2 macrophage ratio to promote a protumor microenvironment.",
+      "evidence_ids": [
+        "pubmed:33855973:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage directly states that high TYRO3 expression tumors exhibit anti-PD-1/PD-L1 resistance, and mechanistically TYRO3 inhibited tumor cell ferroptosis triggered by anti-PD-1/PD-L1 and facilitated a protumor microenvironment by reducing the M1/M2 macrophage ratio, matching the claim closely. The only addition is calling TYRO3 a 'receptor tyrosine kinase,' which is a well-known factual descriptor not contradicted by the text."
+    },
+    {
+      "key": "q04:2",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "Chronic exposure to interferon gamma (IFNγ), despite being a key cytokine for cellular immunity, can paradoxically promote resistance to immune checkpoint blockade therapy by upregulating PARP14, which enhances effector T cell suppression and increases regulatory T cell presence in tumors.",
+      "evidence_ids": [
+        "pubmed:37752135:1"
+      ],
+      "verdict": "unsupported",
+      "reason": "The passage states that PARP14 inhibition/knockdown enhances effector T cell infiltration and decreases Tregs, implying PARP14 itself suppresses effector T cells and increases Tregs — the opposite direction from what the claim states ('enhances effector T cell suppression and increases regulatory T cell presence' is roughly consistent, but the claim frames PARP14 as directly causing these effects, whereas the passage only shows that inhibiting PARP14 reverses them, not a direct causal link of PARP14 upregulation with T cell suppression as stated)."
+    },
+    {
+      "key": "q04:3",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "In hepatocellular carcinoma, CT10 regulator of kinase-like (CRKL) has been investigated for its role in driving resistance to anti-PD-1 therapy, although the underlying mechanisms of immunotherapy resistance in this cancer type remain elusive.",
+      "evidence_ids": [
+        "pubmed:38403027:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states the mechanisms underlying immunotherapy resistance remain elusive and that the study aimed to identify the role of CRKL in resistance to anti-PD-1 therapy in HCC, matching the claim's content."
+    },
+    {
+      "key": "q04:4",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "The interaction between PD-1 and its ligand PD-L1 is an important mechanism by which human tumors achieve immune escape, and this interaction is closely associated with resistance mechanisms during anti-PD-1/PD-L1 immunotherapy.",
+      "evidence_ids": [
+        "pubmed:36177034:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage supports the first part verbatim: \"the interaction of PD-1 and PD-L1 is one of the important mechanism by which human tumors generate immune escape.\" However, the passage does not state that this interaction is \"closely associated with resistance mechanisms during anti-PD-1/PD-L1 immunotherapy\" - it only mentions the review covers \"mechanisms of immune response and resistance\" as a separate topic, without linking PD-1/PD-L1 interaction specifically to resistance during immunotherapy."
+    },
+    {
+      "key": "q04:5",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "Monotherapy with immune checkpoint inhibitors targeting PD-1/PD-L1 occasionally demonstrates treatment resistance and limited efficacy, which has motivated combination strategies such as dual blockade with CTLA-4 that act at different stages of T cell activation to synergistically enhance immune responses against cancer cells.",
+      "evidence_ids": [
+        "pubmed:39068460:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states ICI monotherapy \"occasionally demonstrates treatment resistance and limited efficacy\" and that dual blockade of PD-1/PD-L1 and CTLA-4 \"operates at different stages of T cell activation with synergistically enhancing immune responses against cancer cells,\" directly matching the claim's content."
+    },
+    {
+      "key": "q05:0",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "Compared to ICI monotherapy, which occasionally shows treatment resistance and limited efficacy, dual blockade of PD-1/PD-L1 and CTLA-4 acts at different stages of T cell activation and synergistically enhances immune responses against cancer cells in lung cancer.",
+      "evidence_ids": [
+        "pubmed:39068460:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim closely paraphrases the passage's statement that \"Compared to ICI monotherapy, which occasionally demonstrates treatment resistance and limited efficacy, the dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 operates at different stages of T cell activation with synergistically enhancing immune responses against cancer cells,\" in the context of lung cancer treatment."
+    },
+    {
+      "key": "q05:1",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "This dual PD-1/PD-L1 and CTLA-4 blockade therapy may increase the risk of drug-related adverse reactions, including immune-related adverse events, while improving efficacy, and clinical trials in lung cancer have shown the efficacy of this combination remains unclear alongside an inevitable incidence of immune-related adverse events.",
+      "evidence_ids": [
+        "pubmed:39068460:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states the dual therapy \"may increase the risk of drug-related adverse reactions while improving efficacy\" and that clinical trials \"explored combination therapy... yet its efficacy remains to be unclear with the inevitable incidence of immune-related adverse events,\" matching the claim's content."
+    },
+    {
+      "key": "q05:2",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "A meta-analysis of neoadjuvant immune checkpoint inhibitor trials in melanoma showed a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1.",
+      "evidence_ids": [
+        "pubmed:41478279:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage directly states: \"Meta-analysis of neoadjuvant ICI trials in melanoma illustrated a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1,\" which matches the claim verbatim in substance."
+    },
+    {
+      "key": "q05:3",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "In subgroup analyses based on baseline interferon-gamma (IFN-γ) signature, adding (high-dose) anti-CTLA-4 to anti-PD-1 in IFN-γ high subgroups increased toxicity but not efficacy, whereas in IFN-γ low subgroups the addition of high-dose anti-CTLA-4 to anti-PD-1 increased efficacy while toxicity remained low.",
+      "evidence_ids": [
+        "pubmed:41478279:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim directly matches the passage's statement: \"in IFN-γ high subgroups the addition of (high-dose) anti-CTLA-4 increased toxicity but not efficacy, the addition of high-dose anti-CTLA-4 to anti-PD-1 increased efficacy in the IFN-γ low subgroup, while toxicity remained low.\""
+    },
+    {
+      "key": "q06:0",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "PD-L1 expression, tumor mutation burden, interferon-γ presence, microbiome composition, and extracellular matrix characteristics are biomarkers that play a crucial role in predicting responses to immune checkpoint inhibitor therapy.",
+      "evidence_ids": [
+        "pubmed:39447408:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states these five biomarkers (PDL-1 expression, tumor mutation burden, interferon-γ presence, microbiome composition, and extracellular matrix characteristics) \"play a crucial role in predicting responses to immunotherapy with checkpoint inhibitors,\" directly matching the claim."
+    },
+    {
+      "key": "q06:1",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "PD-1 and PD-L1 are considered promising biomarkers for cancer therapy because their interaction is closely associated with tumor progression and immune escape.",
+      "evidence_ids": [
+        "pubmed:36177034:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage states PD-1/PD-L1 are \"closely associated with the progression of human cancers and are promising biomarkers for cancer therapy\" as separate points, and separately notes their interaction causes immune escape, but it does not explicitly state that the biomarker status is *because* of the interaction being linked to both progression and immune escape as the claim asserts—this causal link between the two facts is an added inference not directly stated."
+    },
+    {
+      "key": "q06:2",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "Food and Drug Administration (FDA)-approved biomarkers exist for guiding immune checkpoint inhibitor therapy, and newer emerging biomarkers may further improve identification of patients likely to benefit from these treatments.",
+      "evidence_ids": [
+        "pubmed:40154483:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states \"FDA-approved biomarkers for ICI therapy\" exist and that \"newer data have revealed the potential utility of other biomarkers\" that \"can further improve the identification of patients who benefit from ICIs,\" directly matching the claim."
+    },
+    {
+      "key": "q06:3",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "The gut microbiome significantly influences the efficacy of immune checkpoint inhibitors, and modifying microbiota composition through fecal microbiota transplantation from a responder can be associated with clinical benefit in patients with anti-PD-1-refractory advanced solid cancers.",
+      "evidence_ids": [
+        "pubmed:39059396:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states the gut microbiome influences immune checkpoint inhibitor efficacy, and reports that FMT from anti-PD-1 responders induced 'clinical benefits in 6 of 13 patients' with anti-PD-1-refractory advanced solid cancers, directly supporting both parts of the claim."
+    },
+    {
+      "key": "q06:4",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "Specific gut bacteria, such as Prevotella merdae Immunoactis, are associated with enhanced anti-tumor immune responses (stimulating cytotoxic T cell activity), while other species such as Lactobacillus salivarius and Bacteroides plebeius may inhibit anti-tumor immunity, suggesting microbiome composition could serve as a biomarker related to checkpoint inhibitor response.",
+      "evidence_ids": [
+        "pubmed:39059396:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage supports that Prevotella merdae Immunoactis stimulates T cell activity and that Lactobacillus salivarius and Bacteroides plebeius may inhibit anti-tumor immunity, but it does not state or imply that microbiome composition could serve as a 'biomarker' for checkpoint inhibitor response—this is an inference not made in the text."
+    },
+    {
+      "key": "q07:0",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Amyloid beta and phosphorylated tau together contribute to defective autophagy and mitophagy in Alzheimer's disease, suggesting that amyloid beta pathology is linked to disrupted cellular clearance mechanisms alongside tau abnormalities.",
+      "evidence_ids": [
+        "pubmed:31121890:0"
+      ],
+      "verdict": "supported",
+      "reason": "The title itself states that amyloid beta and phosphorylated tau induce defective autophagy and mitophagy in Alzheimer's disease, which directly supports the claim that both contribute to disrupted cellular clearance mechanisms."
+    },
+    {
+      "key": "q07:1",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "The dendritic function of tau has been shown to mediate amyloid-beta toxicity in Alzheimer's disease mouse models, indicating an interdependent relationship between the two proteins in producing neuronal damage.",
+      "evidence_ids": [
+        "pubmed:20655099:0"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage title supports that dendritic tau function mediates amyloid-beta toxicity in AD mouse models, but it says nothing about an 'interdependent relationship' or 'neuronal damage' specifically—these are additional interpretive claims not stated in the title alone."
+    },
+    {
+      "key": "q07:2",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "There is a proposed synergy between amyloid-beta and tau in driving Alzheimer's disease pathology, rather than either protein acting entirely independently.",
+      "evidence_ids": [
+        "pubmed:32778792:0"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage is only a title stating 'Synergy between amyloid-β and tau in Alzheimer's disease,' which supports the idea of a proposed synergy, but it provides no detail about pathology mechanisms or the contrast with proteins acting 'entirely independently,' so the added specifics go beyond what the title alone establishes."
+    },
+    {
+      "key": "q07:3",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Synaptic mitochondria have been identified as an early shared target of both amyloid-beta and tau in Alzheimer's disease, pointing to a common site through which these pathologies may interact.",
+      "evidence_ids": [
+        "pubmed:34719499:0"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The title supports that synaptic mitochondria are an early target of amyloid-beta and tau, but it does not state or establish that this makes them a 'common site through which these pathologies may interact' — that interpretive claim goes beyond the title alone."
+    },
+    {
+      "key": "q07:4",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Amyloid-beta, phosphorylated tau, and inflammation or excessive calcium can interact in feedforward cycles that drive Alzheimer's disease pathology, and there is ongoing debate about whether amyloid or tau initiates the disease process.",
+      "evidence_ids": [
+        "pubmed:40767321:1",
+        "pubmed:40767321:0"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states \"Aβ42, phosphorylated tau, and inflammation/excessive calcium can all interact in feedforward cycles to drive AD pathology\" and separately notes the review addresses \"arguments about whether amyloid versus tau initiates pathology,\" matching both parts of the claim."
+    },
+    {
+      "key": "q07:5",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Reelin has been described as a molecular link connecting Apolipoprotein E4, tau, and amyloid-beta in Alzheimer's disease.",
+      "evidence_ids": [
+        "pubmed:38754634:0"
+      ],
+      "verdict": "supported",
+      "reason": "The passage title itself states \"Reelin links Apolipoprotein E4, Tau, and Amyloid-β in Alzheimer's disease,\" directly matching the claim's assertion that Reelin connects these three factors in Alzheimer's disease."
+    },
+    {
+      "key": "q08:0",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "The link between the classic Alzheimer's disease histopathological hallmarks—amyloid plaques and neurofibrillary tangles—and AD-associated cognitive impairment has long been established, but researchers now favor a multitarget view involving interactions among amyloid, tau, and the cholinergic system to better explain cognitive decline rather than either pathology alone.",
+      "evidence_ids": [
+        "pubmed:32017704:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage explicitly states the hallmark-cognitive impairment link 'has long been established' and that 'a multitarget approach involving all amyloid, tau, and cholinergic hypotheses could better explain the evolution of events' and cognitive impairment, matching the claim's assertions."
+    },
+    {
+      "key": "q08:1",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "Alzheimer's disease is still defined by the combined presence of amyloid and tau, but researchers are moving away from the simple assumption of linear causality proposed in the original amyloid hypothesis, suggesting that neither marker alone fully accounts for disease progression or cognitive outcomes.",
+      "evidence_ids": [
+        "pubmed:26921134:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage supports that AD is \"still defined by the combined presence of amyloid and tau\" and that researchers are \"gradually moving away from the simple assumption of linear causality as proposed in the original amyloid hypothesis.\" However, the added interpretive claim that this means \"neither marker alone fully accounts for disease progression or cognitive outcomes\" is not stated in the passage, which only mentions that age-related, protective, and disease-promoting factors \"probably interact with the core mechanisms,\" not a specific claim about markers and progression/cognitive outcomes."
+    },
+    {
+      "key": "q08:2",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "In a transgenic mouse model combining amyloid and tau pathology, removing amyloid from the brain with anti-amyloid immunotherapy did not reverse or slow tau pathology or alter synapse loss, suggesting that once amyloid and tau pathology interact, reducing amyloid burden alone is insufficient to curb degenerative changes linked to cognitive decline.",
+      "evidence_ids": [
+        "pubmed:39504519:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage supports that amyloid removal did not reverse/slow tau pathology or alter synapse loss, and that reducing plaque burden is insufficient to curb degenerative phenotypes. However, the passage never mentions cognitive decline, so the claim's addition of 'degenerative changes linked to cognitive decline' is an unsupported extension."
+    },
+    {
+      "key": "q08:3",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "Neuritic plaques (amyloid-beta) and neurofibrillary tangles (tau) both represent pathophysiologic hallmarks of Alzheimer's disease, but numerous other processes likely interact with risk and protective factors to produce the cognitive loss and functional impairments characteristic of AD dementia, indicating that cognitive decline cannot be attributed to amyloid or tau pathology alone.",
+      "evidence_ids": [
+        "pubmed:36396271:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage supports the first part verbatim (plaques and tangles as hallmarks, numerous processes interacting with risk/protective factors to produce cognitive loss and functional impairments), but it does not state or imply the conclusion that 'cognitive decline cannot be attributed to amyloid or tau pathology alone' - that interpretive claim is an addition not present in the text."
+    },
+    {
+      "key": "q08:4",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "There is ongoing debate in Alzheimer's disease research about whether amyloid or tau initiates pathology, and current evidence suggests that Aβ42, phosphorylated tau, and inflammation/excessive calcium interact in feedforward cycles to drive AD pathology, rather than one factor alone best correlating with cognitive decline.",
+      "evidence_ids": [
+        "pubmed:40767321:1"
+      ],
+      "verdict": "partially_supported",
+      "reason": "The passage confirms the debate over amyloid vs tau initiation and the feedforward cycle claim verbatim, but it never mentions anything about 'one factor alone best correlating with cognitive decline' - that specific comparison is not addressed in the evidence."
+    }
+  ]
+}

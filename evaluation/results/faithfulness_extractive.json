@@ -1,0 +1,626 @@
+{
+  "synthesizer": "extractive-v1",
+  "judge": "anthropic:claude-sonnet-5",
+  "generated_at": "2026-09-18T02:41:09.694660Z",
+  "claims": 55,
+  "supported": 53,
+  "partially_supported": 0,
+  "unsupported": 2,
+  "strict_rate": 0.9636363636363636,
+  "lenient_rate": 0.9636363636363636,
+  "input_tokens": 76149,
+  "output_tokens": 5760,
+  "by_type": {
+    "comparison": 1.0,
+    "mechanism": 0.9333333333333333,
+    "target": 0.9333333333333333,
+    "unanswerable": 1.0
+  },
+  "verdicts": [
+    {
+      "key": "q01:0",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "Cytosine base editors (CBEs) efficiently generate precise C·G-to-T·A base conversions, but the activation-induced cytidine deaminase/apolipoprotein B mRNA-editing enzyme catalytic polypeptide-like (AID/APOBEC) protein family deaminase component induces considerable off-target effects and indels.",
+      "evidence_ids": [
+        "pubmed:36357717:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the first sentence of the passage."
+    },
+    {
+      "key": "q01:1",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "Here, we review several latest approaches to reduce the off-target effects, including biased or unbiased off-target detection, cytosine or adenine base editors, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein (RNP) delivery and truncated gRNAs.",
+      "evidence_ids": [
+        "pubmed:32630835:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a near-verbatim quote of the passage's sentence listing the reviewed approaches: 'biased or unbiased off-target detection, cytosine or adenine base editors, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein (RNP) delivery and truncated gRNAs.'"
+    },
+    {
+      "key": "q01:2",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "Through investigations involving three single-guide RNAs, we identified numerous unexpected off-target edits both within and outside the protospacer regions.",
+      "evidence_ids": [
+        "pubmed:40207628:1"
+      ],
+      "verdict": "supported",
+      "reason": "This is a verbatim match to the passage's statement about investigations involving three single-guide RNAs identifying numerous unexpected off-target edits within and outside protospacer regions."
+    },
+    {
+      "key": "q01:3",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "CRISPR-mediated genome editing is a revolutionary technology for genome manipulation that uses the CRISPR-Cas systems and base editors.",
+      "evidence_ids": [
+        "pubmed:31911131:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim directly quotes the passage's opening sentence verbatim."
+    },
+    {
+      "key": "q01:4",
+      "question_id": "q01",
+      "question_type": "mechanism",
+      "claim": "Re-engineering the adenine deaminase TadA-8e for efficient and specific CRISPR-based cytosine base editing.",
+      "evidence_ids": [
+        "pubmed:36357717:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage's title text."
+    },
+    {
+      "key": "q02:0",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Cytosine base editors (CBEs) efficiently generate precise C·G-to-T·A base conversions, but the activation-induced cytidine deaminase/apolipoprotein B mRNA-editing enzyme catalytic polypeptide-like (AID/APOBEC) protein family deaminase component induces considerable off-target effects and indels.",
+      "evidence_ids": [
+        "pubmed:36357717:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the first sentence of the passage, which directly states this fact."
+    },
+    {
+      "key": "q02:1",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Here, we review several latest approaches to reduce the off-target effects, including biased or unbiased off-target detection, cytosine or adenine base editors, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein (RNP) delivery and truncated gRNAs.",
+      "evidence_ids": [
+        "pubmed:32630835:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage's sentence listing the reviewed approaches (off-target detection, base editors, prime editing, dCas9, Cas9 paired nickase, RNP delivery, truncated gRNAs)."
+    },
+    {
+      "key": "q02:2",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Re-engineering the adenine deaminase TadA-8e for efficient and specific CRISPR-based cytosine base editing.",
+      "evidence_ids": [
+        "pubmed:36357717:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is verbatim identical to the passage text."
+    },
+    {
+      "key": "q02:3",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "CRISPR-mediated genome editing is a revolutionary technology for genome manipulation that uses the CRISPR-Cas systems and base editors.",
+      "evidence_ids": [
+        "pubmed:31911131:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage's opening sentence, which explicitly describes CRISPR-mediated genome editing as a revolutionary technology using CRISPR-Cas systems and base editors."
+    },
+    {
+      "key": "q02:4",
+      "question_id": "q02",
+      "question_type": "comparison",
+      "claim": "Adenosine base editors (ABEs) facilitate A·T to G·C base pair conversion with significant therapeutic potential for correcting pathogenic point mutations in human genetic diseases, such as sickle cell anemia and β-thalassemia.",
+      "evidence_ids": [
+        "pubmed:40207628:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim directly restates the passage's opening sentence verbatim, which states ABEs facilitate A·T to G·C conversion with therapeutic potential for correcting pathogenic point mutations such as sickle cell anemia and β-thalassemia."
+    },
+    {
+      "key": "q03:0",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "Selict-seq profiles genome-wide off-target effects in adenosine base editing.",
+      "evidence_ids": [
+        "pubmed:40207628:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage text, which directly states that Selct-seq profiles genome-wide off-target effects in adenosine base editing."
+    },
+    {
+      "key": "q03:1",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "CRISPR-mediated genome editing is a revolutionary technology for genome manipulation that uses the CRISPR-Cas systems and base editors.",
+      "evidence_ids": [
+        "pubmed:31911131:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a near-verbatim restatement of the passage's opening sentence, which describes CRISPR-mediated genome editing as a revolutionary technology using CRISPR-Cas systems and base editors."
+    },
+    {
+      "key": "q03:2",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "High-fidelity CRISPR-Cas9 nucleases with no detectable genome-wide off-target effects.",
+      "evidence_ids": [
+        "pubmed:26735016:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage text."
+    },
+    {
+      "key": "q03:3",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "In this study, we present a biochemical method Selict-seq, designed to evaluate genome-wide off-target editing by ABEs.",
+      "evidence_ids": [
+        "pubmed:40207628:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim directly quotes the passage: \"we present a biochemical method Selict-seq, designed to evaluate genome-wide off-target editing by ABEs.\""
+    },
+    {
+      "key": "q03:4",
+      "question_id": "q03",
+      "question_type": "target",
+      "claim": "Existing strategies for reducing genome-wide off-target effects of the widely used Streptococcus pyogenes Cas9 (SpCas9) are imperfect, possessing only partial or unproven efficacies and other limitations that constrain their use.",
+      "evidence_ids": [
+        "pubmed:26735016:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage's sentence: \"Existing strategies for reducing genome-wide off-target effects of the widely used Streptococcus pyogenes Cas9 (SpCas9) are imperfect, possessing only partial or unproven efficacies and other limitations that constrain their use.\""
+    },
+    {
+      "key": "q04:0",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "This review examines the current status of PD-1/PD-L1 blockade in the treatment of advanced NSCLC and explores potential mechanisms of resistance.",
+      "evidence_ids": [
+        "pubmed:40024354:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is nearly verbatim from the passage: \"This review examines the current status of PD-1/PD-L1 blockade in the treatment of advanced NSCLC and explores potential mechanisms of resistance.\""
+    },
+    {
+      "key": "q04:1",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "Here, we showed that tumors with high TYRO3 expression exhibited anti-programmed cell death protein 1/programmed death ligand 1 (anti-PD-1/PD-L1) resistance in a syngeneic mouse model and in patients who received anti-PD-1/PD-L1 therapy.",
+      "evidence_ids": [
+        "pubmed:33855973:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim directly quotes the passage's statement about high TYRO3 expression tumors exhibiting anti-PD-1/PD-L1 resistance in syngeneic mouse model and patients."
+    },
+    {
+      "key": "q04:2",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "Resistance to PD-1/PD-L1 immune checkpoint blockade in advanced non-small cell lung cancer.",
+      "evidence_ids": [
+        "pubmed:40024354:0"
+      ],
+      "verdict": "unsupported",
+      "reason": "The passage is merely a title/fragment with no substantive content or claims about mechanisms, causes, or findings regarding resistance; it cannot support the claim as a factual statement since it provides no actual information beyond restating itself."
+    },
+    {
+      "key": "q04:3",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "Resistance mechanisms to immune checkpoint blockade therapy (ICBT) limit its response duration and magnitude.",
+      "evidence_ids": [
+        "pubmed:37752135:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states verbatim: \"Resistance mechanisms to immune checkpoint blockade therapy (ICBT) limit its response duration and magnitude,\" directly matching the claim."
+    },
+    {
+      "key": "q04:4",
+      "question_id": "q04",
+      "question_type": "mechanism",
+      "claim": "Compared to ICI monotherapy, which occasionally demonstrates treatment resistance and limited efficacy, the dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 operates at different stages of T cell activation with synergistically enhancing immune responses against cancer cells.",
+      "evidence_ids": [
+        "pubmed:39068460:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of a sentence in the passage, which explicitly states this comparison and mechanism."
+    },
+    {
+      "key": "q05:0",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "Dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 in lung cancer.",
+      "evidence_ids": [
+        "pubmed:39068460:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage text, so it is fully supported."
+    },
+    {
+      "key": "q05:1",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "Compared to ICI monotherapy, which occasionally demonstrates treatment resistance and limited efficacy, the dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 operates at different stages of T cell activation with synergistically enhancing immune responses against cancer cells.",
+      "evidence_ids": [
+        "pubmed:39068460:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim match to a sentence in the passage."
+    },
+    {
+      "key": "q05:2",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "Strategies for unlocking immunosuppression in the tumor microenvironment have been investigated to overcome resistance to first-generation immune checkpoint blockade with anti- programmed cell death protein 1 (PD-1)/ programmed death-ligand 1 (PD-L1) and anti-cytotoxic T-lymphocyte associated protein 4 (CTLA-4) agents.",
+      "evidence_ids": [
+        "pubmed:36058143:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage's opening sentence."
+    },
+    {
+      "key": "q05:3",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "Meta-analysis of neoadjuvant ICI trials in melanoma illustrated a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1.",
+      "evidence_ids": [
+        "pubmed:41478279:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a near verbatim restatement of the passage sentence: \"Meta-analysis of neoadjuvant ICI trials in melanoma illustrated a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1.\""
+    },
+    {
+      "key": "q05:4",
+      "question_id": "q05",
+      "question_type": "comparison",
+      "claim": "In this study, changes in the immune microenvironment of HCC patients were reviewed to clarify the feasibility of anti-PD-1/PD-L1 therapy, and a series of monotherapy and combination therapy clinical trials were summarized to verify the safety and efficacy of this newly developed treatment in patients with advanced HCC.",
+      "evidence_ids": [
+        "pubmed:36601120:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact quotation of a sentence in the passage."
+    },
+    {
+      "key": "q06:0",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "Moreover, we summarized a large number of clinical trials to successfully reveal that PD-1/PD-L1 Immune-checkpoint inhibitors have manifested promising therapeutic effects, which have been evaluated from different perspectives, including overall survival, objective effective rate and medium progression-free survival.",
+      "evidence_ids": [
+        "pubmed:36177034:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim quote from the passage, which explicitly states this exact sentence about summarizing clinical trials evaluating overall survival, objective effective rate, and medium progression-free survival."
+    },
+    {
+      "key": "q06:1",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "Given the rapid advancements in this field and the variability in patient outcomes, there is an urgent need for a comprehensive review that consolidates the latest findings on immune checkpoint inhibitors, covering their clinical status, biomarkers, resistance mechanisms, strategies to overcome resistance, and associated adverse effects.",
+      "evidence_ids": [
+        "pubmed:39447408:1"
+      ],
+      "verdict": "supported",
+      "reason": "This claim is an exact quote from the passage, which states verbatim the same sentence about the need for a comprehensive review."
+    },
+    {
+      "key": "q06:2",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "Navigating established and emerging biomarkers for immune checkpoint inhibitor therapy.",
+      "evidence_ids": [
+        "pubmed:40154483:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage text (a title), so it directly matches the evidence."
+    },
+    {
+      "key": "q06:3",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "Immune checkpoint inhibitors (ICIs) have improved outcomes of patients with many different cancers.",
+      "evidence_ids": [
+        "pubmed:40154483:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states verbatim: \"Immune checkpoint inhibitors (ICIs) have improved outcomes of patients with many different cancers,\" directly matching the claim."
+    },
+    {
+      "key": "q06:4",
+      "question_id": "q06",
+      "question_type": "target",
+      "claim": "The gut microbiome significantly influences immune responses and the efficacy of immune checkpoint inhibitors.",
+      "evidence_ids": [
+        "pubmed:39059396:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states verbatim that \"The gut microbiome significantly influences immune responses and the efficacy of immune checkpoint inhibitors,\" directly matching the claim."
+    },
+    {
+      "key": "q07:0",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Amyloid Beta and Phosphorylated Tau-Induced Defective Autophagy and Mitophagy in Alzheimer's Disease.",
+      "evidence_ids": [
+        "pubmed:31121890:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage title, so it is fully supported by the text."
+    },
+    {
+      "key": "q07:1",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Dendritic function of tau mediates amyloid-beta toxicity in Alzheimer's disease mouse models.",
+      "evidence_ids": [
+        "pubmed:20655099:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim exactly matches the title/statement given in the passage, with no additional or altered content."
+    },
+    {
+      "key": "q07:2",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Alzheimer's disease (AD) research is a large and burgeoning field, where varied methodological approaches are providing multifaceted, but sometimes contradictory, views on the etiology and progression of pathology.",
+      "evidence_ids": [
+        "pubmed:40767321:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a near-verbatim restatement of the passage's opening sentence, which states exactly this."
+    },
+    {
+      "key": "q07:3",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Synergy between amyloid-β and tau in Alzheimer's disease.",
+      "evidence_ids": [
+        "pubmed:32778792:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage's title/text, which directly states synergy between amyloid-β and tau in Alzheimer's disease."
+    },
+    {
+      "key": "q07:4",
+      "question_id": "q07",
+      "question_type": "mechanism",
+      "claim": "Synaptic Mitochondria: An Early Target of Amyloid-β and Tau in Alzheimer's Disease.",
+      "evidence_ids": [
+        "pubmed:34719499:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage's title text."
+    },
+    {
+      "key": "q08:0",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "Accumulating data show that a multitarget approach involving all amyloid, tau, and cholinergic hypotheses could better explain the evolution of events happening in AD.",
+      "evidence_ids": [
+        "pubmed:32017704:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the sentence in the passage: \"Accumulating data show that a multitarget approach involving all amyloid, tau, and cholinergic hypotheses could better explain the evolution of events happening in AD.\""
+    },
+    {
+      "key": "q08:1",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "Removing amyloid from the brain did not reverse or slow tau pathology or alter synapse loss.",
+      "evidence_ids": [
+        "pubmed:39504519:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states verbatim: \"Removing amyloid from the brain did not reverse or slow tau pathology or alter synapse loss.\""
+    },
+    {
+      "key": "q08:2",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "Alzheimer's disease, the most prevalent cause of dementia, is still defined by the combined presence of amyloid and tau, but researchers are gradually moving away from the simple assumption of linear causality as proposed in the original amyloid hypothesis.",
+      "evidence_ids": [
+        "pubmed:26921134:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a near-verbatim restatement of the passage sentence: \"Alzheimer's disease, the most prevalent cause of dementia, is still defined by the combined presence of amyloid and tau, but researchers are gradually moving away from the simple assumption of linear causality as proposed in the original amyloid hypothesis.\""
+    },
+    {
+      "key": "q08:3",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "While neuritic plaques consisting of aggregated amyloid-beta proteins and neurofibrillary tangles of accumulated tau proteins represent the pathophysiologic hallmarks of AD, numerous processes likely interact with risk and protective factors and one's culture to produce the cognitive loss, neuropsychiatric symptoms, and functional impairments that characterize AD dementia.",
+      "evidence_ids": [
+        "pubmed:36396271:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage's sentence about neuritic plaques, tangles, and interacting processes with risk/protective factors and culture producing AD symptoms."
+    },
+    {
+      "key": "q08:4",
+      "question_id": "q08",
+      "question_type": "comparison",
+      "claim": "In particular, we address arguments about whether amyloid versus tau initiates pathology, and integrate nanoscale data from aging macaques to improve clarity regarding the earliest pathological stages, as initial phosphorylation events can be lost post mortem in human tissue.",
+      "evidence_ids": [
+        "pubmed:40767321:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim quote from the passage, matching the exact wording about addressing amyloid vs tau debate and integrating nanoscale macaque data."
+    },
+    {
+      "key": "q09:0",
+      "question_id": "q09",
+      "question_type": "target",
+      "claim": "Synergy between amyloid-β and tau in Alzheimer's disease.",
+      "evidence_ids": [
+        "pubmed:32778792:0"
+      ],
+      "verdict": "unsupported",
+      "reason": "The passage is only a title/statement mirroring the claim itself, with no supporting details, data, or evidence presented to substantiate the claim of synergy between amyloid-β and tau."
+    },
+    {
+      "key": "q09:1",
+      "question_id": "q09",
+      "question_type": "target",
+      "claim": "Interaction between Aβ and Tau in the Pathogenesis of Alzheimer's Disease.",
+      "evidence_ids": [
+        "pubmed:34239348:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage's title/text, so it directly matches the given content."
+    },
+    {
+      "key": "q09:2",
+      "question_id": "q09",
+      "question_type": "target",
+      "claim": "Synaptic Mitochondria: An Early Target of Amyloid-β and Tau in Alzheimer's Disease.",
+      "evidence_ids": [
+        "pubmed:34719499:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the title given in the passage."
+    },
+    {
+      "key": "q09:3",
+      "question_id": "q09",
+      "question_type": "target",
+      "claim": "Reelin links Apolipoprotein E4, Tau, and Amyloid-β in Alzheimer's disease.",
+      "evidence_ids": [
+        "pubmed:38754634:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage's title/statement, so it is directly supported."
+    },
+    {
+      "key": "q09:4",
+      "question_id": "q09",
+      "question_type": "target",
+      "claim": "Amyloid Beta and Phosphorylated Tau-Induced Defective Autophagy and Mitophagy in Alzheimer's Disease.",
+      "evidence_ids": [
+        "pubmed:31121890:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is simply a restatement of the passage's title, which matches word-for-word."
+    },
+    {
+      "key": "q11:0",
+      "question_id": "q11",
+      "question_type": "unanswerable",
+      "claim": "Immune signature-based uncoupling of checkpoint inhibitor efficacy and toxicity.",
+      "evidence_ids": [
+        "pubmed:41478279:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage title."
+    },
+    {
+      "key": "q11:1",
+      "question_id": "q11",
+      "question_type": "unanswerable",
+      "claim": "Fecal microbiota transplantation improves anti-PD-1 inhibitor efficacy in unresectable or metastatic solid cancers refractory to anti-PD-1 inhibitor.",
+      "evidence_ids": [
+        "pubmed:39059396:0"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage, which directly states that FMT improves anti-PD-1 efficacy in unresectable or metastatic solid cancers refractory to anti-PD-1 inhibitor."
+    },
+    {
+      "key": "q11:2",
+      "question_id": "q11",
+      "question_type": "unanswerable",
+      "claim": "Compared to ICI monotherapy, which occasionally demonstrates treatment resistance and limited efficacy, the dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 operates at different stages of T cell activation with synergistically enhancing immune responses against cancer cells.",
+      "evidence_ids": [
+        "pubmed:39068460:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of a sentence in the passage."
+    },
+    {
+      "key": "q11:3",
+      "question_id": "q11",
+      "question_type": "unanswerable",
+      "claim": "This pathway represents a potential therapeutic target to improve ICI efficacy in PD-L1-high NSCLC.",
+      "evidence_ids": [
+        "pubmed:40050048:4"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage's final sentence, which explicitly states the pathway is a potential therapeutic target to improve ICI efficacy in PD-L1-high NSCLC."
+    },
+    {
+      "key": "q11:4",
+      "question_id": "q11",
+      "question_type": "unanswerable",
+      "claim": "Meta-analysis of neoadjuvant ICI trials in melanoma illustrated a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1.",
+      "evidence_ids": [
+        "pubmed:41478279:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a near-verbatim restatement of the passage's sentence: \"Meta-analysis of neoadjuvant ICI trials in melanoma illustrated a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1.\""
+    },
+    {
+      "key": "q12:0",
+      "question_id": "q12",
+      "question_type": "unanswerable",
+      "claim": "Moderately positive results for interventions targeting several lifestyle factors in non-demented elderly patients and moderately positive interim results for lowering amyloid in pre-dementia Alzheimer's disease suggest that, ultimately, there will be a future in which specific anti-Alzheimer's therapy will be combined with lifestyle interventions targeting general brain health to jointly combat the disease.",
+      "evidence_ids": [
+        "pubmed:26921134:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is an exact restatement of the passage's final sentence, which explicitly makes this statement."
+    },
+    {
+      "key": "q12:1",
+      "question_id": "q12",
+      "question_type": "unanswerable",
+      "claim": "Lung cancer is one of the most common malignant tumors, of which non-small cell lung cancer (NSCLC) accounts for about 85 %.",
+      "evidence_ids": [
+        "pubmed:40024354:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states verbatim that \"Lung cancer is one of the most common malignant tumors, of which non-small cell lung cancer (NSCLC) accounts for about 85 %,\" matching the claim exactly."
+    },
+    {
+      "key": "q12:2",
+      "question_id": "q12",
+      "question_type": "unanswerable",
+      "claim": "APOE ε4 allele (ApoE4) is the primary genetic risk factor for sporadic Alzheimer's disease (AD), expressed in 40-65% of all AD patients.",
+      "evidence_ids": [
+        "pubmed:36614219:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim match of the passage's opening sentence stating ApoE4 is the primary genetic risk factor for sporadic AD, expressed in 40-65% of all AD patients."
+    },
+    {
+      "key": "q12:3",
+      "question_id": "q12",
+      "question_type": "unanswerable",
+      "claim": "Alzheimer's disease (AD) is the most common neurodegenerative disease leading to dementia worldwide.",
+      "evidence_ids": [
+        "pubmed:36396271:1"
+      ],
+      "verdict": "supported",
+      "reason": "The passage states verbatim that \"Alzheimer's disease (AD) is the most common neurodegenerative disease leading to dementia worldwide,\" matching the claim exactly."
+    },
+    {
+      "key": "q12:4",
+      "question_id": "q12",
+      "question_type": "unanswerable",
+      "claim": "Colorectal cancer (CRC) is the second most common cause of cancer mortality, with mismatch repair proficient (pMMR) and/or microsatellite stable (MSS) CRC making up more than 80% of metastatic CRC.",
+      "evidence_ids": [
+        "pubmed:37831146:1"
+      ],
+      "verdict": "supported",
+      "reason": "The claim is a verbatim restatement of the passage's opening sentence."
+    }
+  ]
+}
