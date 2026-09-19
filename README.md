@@ -10,8 +10,8 @@ producing one.
 
 **▶ Try it: [bio-research-copilot.onrender.com](https://bio-research-copilot.onrender.com)**
 It runs on a free instance that sleeps when idle, so the first load can take up to a
-minute to wake. A question then takes fifteen to twenty seconds, because it really does
-search PubMed and read the papers. To run it locally instead:
+minute to wake. A question then takes fifteen to twenty seconds, because it searches
+PubMed and read the papers. To run it locally instead:
 `uv sync --extra web && uv run bio-copilot-web`.
 
 What it does today, end to end:
