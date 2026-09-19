@@ -191,11 +191,3 @@ uv run pytest -m live
 
 MIT, in [LICENSE](LICENSE). Every dependency is permissively licensed: MIT, BSD or
 Apache 2.0.
-
-One thing worth stating plainly. `evaluation/benchmark_v1/corpus.xml` holds titles
-and abstracts for 60 PubMed records, committed so the benchmark is reproducible
-without a network call. PubMed citation data is freely available through NCBI's
-E-utilities, but copyright in an individual abstract may rest with its publisher,
-so that file is included for reproducing the evaluation rather than offered for
-redistribution. The MIT licence above covers this project's own code and
-documentation, not the abstracts.
