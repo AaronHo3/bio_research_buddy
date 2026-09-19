@@ -30,19 +30,37 @@ allowance in a day; the console limit is the backstop that does not reset.
 ## Render
 
 `render.yaml` in the repository root is a blueprint, so the configuration is
-reviewable rather than clicked into a dashboard.
+reviewable rather than clicked into a dashboard. It uses **Render's Python
+runtime, not Docker**, which means nothing needs installing locally and the build
+logs are plain.
 
 1. Push the repository to GitHub.
-2. At [render.com](https://render.com), choose **New → Blueprint** and point it at
-   the repository. Render reads `render.yaml`.
-3. It will prompt for the values marked `sync: false`: `ANTHROPIC_API_KEY` and
-   `NCBI_CONTACT_EMAIL`. These are stored as secrets and never enter the image.
-4. Deploy. The URL looks like `https://bio-research-copilot.onrender.com`.
+2. At [render.com](https://render.com), sign in with GitHub.
+3. Choose **New → Blueprint**, pick this repository. Render reads `render.yaml`.
+4. It prompts for the values marked `sync: false`. `ANTHROPIC_API_KEY` and
+   `NCBI_CONTACT_EMAIL` are the two that matter; `NCBI_API_KEY` can be left
+   blank. These are stored as secrets and never enter the repository.
+5. **Apply**. The first build takes a few minutes. The URL looks like
+   `https://bio-research-copilot.onrender.com`.
+
+Render runs `/api/health` as a health check, so a failed deploy shows up as a
+failed check rather than a silently broken page.
 
 **Know this before sending the link to anyone:** free Render services sleep after
 a period of inactivity, and the next visitor waits through a cold start of
 roughly thirty to sixty seconds before the page appears. For a portfolio link
-that is a real cost. A paid instance removes it.
+that is a real cost, and the reason a recorded video is worth having as well. A
+paid instance removes the delay.
+
+### Do you need Docker?
+
+No. Render builds from `render.yaml` on its own machines. The `Dockerfile` in this
+repository exists for hosts that require one, and for anyone who wants to run the
+container locally; it is not used by the Render path and has never been built.
+
+Installing Docker locally is only worth it if you want to debug a build without
+waiting on a host. On Windows that means Docker Desktop, which needs WSL2 and
+several gigabytes. Skip it unless a Docker-based host is the goal.
 
 ## Hugging Face Spaces
 
