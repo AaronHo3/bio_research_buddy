@@ -24,8 +24,15 @@ class LiteratureSourceParseError(LiteratureSourceError):
 class LiteratureSource(Protocol):
     """Anything that can turn a query into normalized papers."""
 
-    def search(self, query: SearchQuery) -> list[Paper]:
+    def search(self, query: SearchQuery, term: str | None = None) -> list[Paper]:
         """Return up to ``query.max_results`` papers, best match first.
+
+        Args:
+            query: The user's question and how many papers to return.
+            term: A provider-specific query string prepared by a caller that
+                knows how to write one. A source that ignores it still satisfies
+                this contract, which keeps query planning optional rather than
+                required.
 
         Raises:
             LiteratureSourceUnavailableError: the provider did not answer usefully.

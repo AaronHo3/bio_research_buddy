@@ -15,9 +15,10 @@ The client paces itself to that limit and retries transient failures
 (timeouts, connection errors, HTTP 429 and 5xx) with exponential backoff.
 """
 
+import re
 import time
 import xml.etree.ElementTree as ET
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import httpx
@@ -26,6 +27,7 @@ from bio_research_copilot.adapters.literature import (
     LiteratureSourceParseError,
     LiteratureSourceUnavailableError,
 )
+from bio_research_copilot.adapters.pmc import FullText, parse_pmc_links, parse_pmc_xml
 from bio_research_copilot.adapters.resilience import MinIntervalLimiter, RetryPolicy
 from bio_research_copilot.domain import Paper, PublicationDate, SearchQuery, Source
 
@@ -92,8 +94,8 @@ class PubMedClient:
             )
         self._limiter = MinIntervalLimiter(requests_per_second, clock=clock, sleep=sleep)
 
-    def search(self, query: SearchQuery) -> list[Paper]:
-        pmids = self._esearch(query)
+    def search(self, query: SearchQuery, term: str | None = None) -> list[Paper]:
+        pmids = self._esearch(query, term)
         if not pmids:
             return []
         xml_text = self._efetch(pmids)
@@ -102,13 +104,82 @@ class PubMedClient:
         rank = {pmid: i for i, pmid in enumerate(pmids)}
         return sorted(papers, key=lambda p: rank.get(p.source_id, len(rank)))
 
+    def fetch_full_text(self, pmids: Sequence[str], limit: int = 8) -> dict[str, FullText]:
+        """Full text for up to ``limit`` of ``pmids``, preferring the order given.
+
+        Availability is checked for every id before anything is downloaded.
+        ``elink`` costs one request whatever the batch size, while a body runs to
+        tens of thousands of characters, so learning first which papers have one
+        means the expensive call is spent on papers that are both relevant and
+        obtainable. Choosing the most relevant first and only then discovering
+        most of them are not in PMC wastes the budget on the wrong papers.
+
+        Absence is the normal case, not an error: only some papers have a PMC
+        record, and only some of those permit download. A paper with no full
+        text is simply missing from the result, and the caller keeps whatever
+        abstract it already had.
+
+        Raises:
+            LiteratureSourceUnavailableError: NCBI could not be reached.
+            LiteratureSourceParseError: NCBI answered in an unexpected shape.
+        """
+        wanted = [pmid for pmid in dict.fromkeys(pmids) if pmid]
+        if not wanted or limit < 1:
+            return {}
+
+        pairs = [("dbfrom", "pubmed"), ("db", "pmc"), ("retmode", "json")]
+        pairs += [("id", pmid) for pmid in wanted]
+        try:
+            payload = self._get_pairs("elink.fcgi", pairs).json()
+        except ValueError as exc:
+            msg = "elink response was not valid JSON"
+            raise LiteratureSourceParseError(msg) from exc
+
+        available = parse_pmc_links(payload)
+        # Caller order is relevance order, so this keeps the most relevant of the
+        # papers that actually have a body.
+        chosen = [available[pmid] for pmid in wanted if pmid in available][:limit]
+        if not chosen:
+            return {}
+
+        xml_text = self._get("efetch.fcgi", db="pmc", id=",".join(chosen), retmode="xml").text
+        # The PMID inside the PMC record is authoritative; the elink mapping is
+        # only used to decide what to ask for.
+        return {text.pmid: text for text in parse_pmc_xml(xml_text) if text.pmid in wanted}
+
     # -- E-utilities calls ---------------------------------------------------
 
-    def _esearch(self, query: SearchQuery) -> list[str]:
+    def _esearch(self, query: SearchQuery, term: str | None = None) -> list[str]:
+        """PMIDs for a question, falling back through progressively simpler queries.
+
+        A planned query is tried first when one is supplied. If it matches
+        nothing, the deterministic translation is tried, and then that stripped
+        to its distinctive tokens. Each step is broader than the last, because a
+        query returning nothing is the one failure the ranking stage cannot
+        recover from.
+        """
+        attempts: list[str] = []
+        if term:
+            attempts.append(term)
+        translated = to_search_term(query.raw)
+        if translated not in attempts:
+            attempts.append(translated)
+        narrowed = narrow_search_term(translated)
+        if narrowed and narrowed not in attempts:
+            attempts.append(narrowed)
+
+        ids: list[str] = []
+        for attempt in attempts:
+            ids = self._esearch_term(attempt, query.max_results)
+            if ids:
+                return ids
+        return ids
+
+    def _esearch_term(self, term: str, max_results: int) -> list[str]:
         payload = self._get(
             "esearch.fcgi",
-            term=query.raw,
-            retmax=str(query.max_results),
+            term=term,
+            retmax=str(max_results),
             retmode="json",
             sort="relevance",
         )
@@ -128,24 +199,36 @@ class PubMedClient:
 
     def _get(self, endpoint: str, **params: str) -> httpx.Response:
         """One logical request: paced by the limiter, retried on transient failure."""
+        return self._get_pairs(endpoint, list(params.items()))
+
+    def _get_pairs(self, endpoint: str, pairs: list[tuple[str, str]]) -> httpx.Response:
+        """As ``_get``, but allowing a parameter to repeat.
+
+        ``elink`` needs one ``id`` parameter per record: given a single
+        comma-joined value it answers with one undifferentiated linkset, which
+        cannot be attributed back to the papers that produced it.
+        """
         attempt = 0
         while True:
             attempt += 1
             self._limiter.wait()
             try:
-                return self._request(endpoint, params)
+                return self._request(endpoint, pairs)
             except _TransientError as exc:
                 if attempt >= self._retry.max_attempts:
                     msg = f"{exc.message} (gave up after {attempt} attempts)"
                     raise LiteratureSourceUnavailableError(msg) from exc.cause
                 self._sleep(self._retry.delay_before_retry(attempt))
 
-    def _request(self, endpoint: str, params: dict[str, str]) -> httpx.Response:
+    def _request(self, endpoint: str, params: list[tuple[str, str]]) -> httpx.Response:
         """A single HTTP call. Transient problems raise ``_TransientError``."""
+        overridden = {key for key, _ in params}
+        merged: list[tuple[str, str | int | float | bool | None]] = [
+            (key, value) for key, value in self._identity.items() if key not in overridden
+        ]
+        merged.extend(params)
         try:
-            response = self._http.get(
-                f"{EUTILS_BASE_URL}/{endpoint}", params={**self._identity, **params}
-            )
+            response = self._http.get(f"{EUTILS_BASE_URL}/{endpoint}", params=merged)
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
@@ -170,6 +253,91 @@ class _TransientError(Exception):
 
 
 # -- XML translation ----------------------------------------------------------
+
+
+QUESTION_WORDS = frozenset(
+    (
+        # Dropped before the term reaches esearch. NCBI ANDs every term it does
+        # not recognise as a field, so one conversational word can take a query
+        # from hundreds of papers to none: "Tell me about MYBPC3" returns
+        # nothing, while "MYBPC3" returns several hundred. None of these carry
+        # retrieval value, so removing them costs nothing.
+        # Articles, conjunctions, prepositions, auxiliaries
+        "a", "an", "and", "are", "as", "at", "be", "been", "being", "by", "can",
+        "could", "did", "do", "does", "for", "from", "had", "has", "have", "how",
+        "in", "into", "is", "it", "its", "may", "might", "must", "of", "on", "or",
+        "should", "that", "the", "their", "them", "there", "these", "this",
+        "those", "to", "was", "were", "what", "when", "where", "which", "who",
+        "whom", "why", "will", "with", "would",
+        # Pronouns and politeness: a question addressed to an assistant
+        "i", "me", "my", "myself", "our", "please", "thanks", "us", "we", "you",
+        "your",
+        # Framing verbs and nouns: the request, not the subject
+        "about", "describe", "detail", "details", "discuss", "explain",
+        "explanation", "give", "information", "know", "learn", "let", "like",
+        "list", "need", "outline", "overview", "provide", "question", "regarding",
+        "summarise", "summarize", "summary", "tell", "understand", "want",
+    )
+)  # fmt: skip
+
+#: Tokens worth keeping when a query has to be narrowed: gene symbols, protein
+#: names and acronyms all carry a digit or an interior capital.
+_DISTINCTIVE = re.compile(r"\d|(?<=.)[A-Z]")
+
+NARROWED_TERM_TOKENS = 3
+"""How many tokens a narrowed query keeps when nothing looks distinctive."""
+
+_EDGE_PUNCTUATION = ".,;:!?()[]{}\"'"
+
+
+def to_search_term(question: str) -> str:
+    """A PubMed query built from a natural-language question.
+
+    A question sent verbatim to esearch is not merely noisy, it can be actively
+    wrong: NCBI's automatic term mapping reads "is" as an author name, and the
+    resulting ``is[Author]`` clause is ANDed with everything else, so a question
+    about a well-covered topic returns zero papers. Dropping question words
+    removes that failure without touching the terms that carry meaning.
+
+    Word forms are otherwise preserved, so "PD-1", "COVID-19" and "CRISPR/Cas9"
+    reach PubMed intact; a tokeniser that split on punctuation would break them
+    into parts that match far less precisely.
+
+    Returns the original question when nothing would remain, because an empty
+    term is worse than an imperfect one.
+    """
+    kept = [
+        word
+        for raw in question.split()
+        if (word := raw.strip(_EDGE_PUNCTUATION)) and word.lower() not in QUESTION_WORDS
+    ]
+    return " ".join(kept) if kept else question.strip()
+
+
+def narrow_search_term(term: str) -> str:
+    """A shorter query to try when the first one matched nothing.
+
+    An exhaustive list of words that must not be ANDed cannot be maintained, so
+    a query that returns nothing is retried with only its most distinctive
+    tokens. Gene symbols, protein names and acronyms all carry a digit or an
+    interior capital, which is enough to pick "MYBPC3" out of "Tell me about
+    MYBPC3" without knowing that "tell" was the problem. Failing that, the
+    longest tokens are kept, since long words are rarely the framing ones.
+
+    Returns an empty string when there is nothing left to narrow to, which the
+    caller treats as no result rather than retrying.
+    """
+    tokens = term.split()
+    if len(tokens) < 2:
+        return ""
+    distinctive = [token for token in tokens if _DISTINCTIVE.search(token)]
+    if distinctive:
+        return " ".join(distinctive)
+    longest = sorted(tokens, key=len, reverse=True)[:NARROWED_TERM_TOKENS]
+    if len(longest) == len(tokens):
+        return ""
+    # Restore the original order, so the query still reads as the question did.
+    return " ".join(token for token in tokens if token in set(longest))
 
 
 def parse_efetch_xml(xml_text: str) -> list[Paper]:

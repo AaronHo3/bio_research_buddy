@@ -23,7 +23,7 @@ class FakeSource:
     def __init__(self, papers: list[Paper]) -> None:
         self.papers = papers
 
-    def search(self, query: SearchQuery) -> list[Paper]:
+    def search(self, query: SearchQuery, term: str | None = None) -> list[Paper]:
         return self.papers
 
 

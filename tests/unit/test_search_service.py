@@ -18,7 +18,7 @@ class FakeSource:
         self.papers = papers
         self.queries: list[SearchQuery] = []
 
-    def search(self, query: SearchQuery) -> list[Paper]:
+    def search(self, query: SearchQuery, term: str | None = None) -> list[Paper]:
         self.queries.append(query)
         return self.papers
 

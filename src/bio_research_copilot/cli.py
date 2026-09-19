@@ -39,6 +39,7 @@ from bio_research_copilot.application import (
     query_passages,
     search_papers,
 )
+from bio_research_copilot.application.demo_export import export_demo
 from bio_research_copilot.application.evaluate import collapse_to_papers
 from bio_research_copilot.application.evaluate_synthesis import (
     SynthesisReport,
@@ -382,6 +383,16 @@ def build_parser(default_db: Path) -> argparse.ArgumentParser:
         default=None,
         help="The judged report to compare against, when using --compare.",
     )
+
+    demo = subparsers.add_parser(
+        "export-demo",
+        help="Turn an evaluated synthesis report into display data for the web demo.",
+    )
+    demo.add_argument("report", type=Path, help="A report written by evaluate-synthesis --out.")
+    demo.add_argument("--out", type=Path, required=True, help="Where to write the demo data.")
+    demo.add_argument(
+        "--db", type=Path, default=default_db, help=f"SQLite file (default: {default_db})."
+    )
     return parser
 
 
@@ -721,6 +732,7 @@ def render_faithfulness_summary(report: FaithfulnessReport) -> str:
         f"  lenient (supported or partial) {report.lenient_rate:.3f}",
         "",
         f"  judge tokens: {report.input_tokens} in / {report.output_tokens} out",
+        *([f"  unjudged (excluded): {report.unjudged}"] if report.unjudged else []),
         "",
         "Strict rate by question type",
     ]
@@ -828,6 +840,22 @@ def _compare_labels(args: argparse.Namespace) -> int:
     if args.out is not None:
         _write_json(args.out, report.model_dump(mode="json"))
         print(f"report written to {args.out}")
+    return EXIT_OK
+
+
+def _cmd_export_demo(args: argparse.Namespace, runtime: Runtime) -> int:
+    if not args.report.exists():
+        print(f"error: cannot read {args.report}: not found", file=sys.stderr)
+        return EXIT_BAD_INPUT
+    report = SynthesisReport.model_validate_json(args.report.read_text(encoding="utf-8"))
+    with runtime.open_repository(args.db) as repository:
+        data = export_demo(repository, report)
+    _write_json(args.out, data.model_dump(mode="json"))
+    answered = sum(1 for a in data.answers if not a.abstained)
+    print(
+        f"{len(data.answers)} answers ({answered} answered, "
+        f"{len(data.answers) - answered} abstained) written to {args.out}"
+    )
     return EXIT_OK
 
 
@@ -946,6 +974,7 @@ _COMMANDS: dict[str, Callable[[argparse.Namespace, Runtime], int]] = {
     "evaluate": _cmd_evaluate,
     "evaluate-synthesis": _cmd_evaluate_synthesis,
     "judge-faithfulness": _cmd_judge_faithfulness,
+    "export-demo": _cmd_export_demo,
 }
 
 

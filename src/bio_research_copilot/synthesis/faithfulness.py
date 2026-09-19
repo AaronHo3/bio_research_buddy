@@ -165,15 +165,27 @@ class LlmFaithfulnessJudge:
     def judge(self, claim: str, passages: list[str]) -> Judgement:
         """One verdict.
 
+        A malformed reply is retried once. Observed from the live API: a model
+        occasionally emits a degenerate tool call such as
+        ``{"parameter name": "verdict"}``, which carries no verdict at all. That
+        is sampling noise rather than a considered refusal, and a second attempt
+        usually succeeds.
+
         Raises:
-            SynthesisError: the call failed or the verdict was malformed. A
-                missing verdict is not defaulted to anything: silently treating
-                a failure as "supported" would inflate the headline number.
+            SynthesisError: the call failed, or the verdict was still malformed
+                after a retry. A missing verdict is never defaulted to anything:
+                treating a failure as "supported" would inflate the rate this
+                whole measurement exists to establish.
         """
         if not passages:
             msg = "a claim with no cited passages cannot be judged"
             raise SynthesisError(msg)
+        try:
+            return self._judge_once(claim, passages)
+        except SynthesisError:
+            return self._judge_once(claim, passages)
 
+    def _judge_once(self, claim: str, passages: list[str]) -> Judgement:
         started = self._timer()
         try:
             message = self._client.messages.create(

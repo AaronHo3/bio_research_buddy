@@ -12,4 +12,4 @@ Guide RNA design influences editing specificity in mammalian cells.
 
 Question: What causes off-target editing by base editors?
 
-Record at most 6 claims that answer this question, using only the passages above. Cite each passage by the exact id in its tag.
+Record at most 6 claims that answer this question, using only the passages above. Cite every passage that supports a claim, by the exact id in its tag, and combine passages making the same point into one claim rather than repeating it.

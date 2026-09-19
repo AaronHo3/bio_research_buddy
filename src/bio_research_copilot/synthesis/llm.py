@@ -42,7 +42,14 @@ from bio_research_copilot.synthesis.prompt import (
 )
 
 DEFAULT_MODEL = "claude-sonnet-5"
-DEFAULT_MAX_TOKENS = 1024
+DEFAULT_MAX_TOKENS = 2048
+"""Ceiling on the reply.
+
+Claims that combine several passages are longer than claims that cite one, and a
+reply truncated mid-JSON carries no claims at all rather than fewer. Measured on
+live full-text evidence, six combined claims run to roughly 1,200 output tokens,
+so 1,024 was under the real requirement. Output tokens are billed as generated,
+so headroom here costs nothing until it is used."""
 DEFAULT_MAX_CLAIMS = 6
 DEFAULT_MAX_RETRIES = 2
 
@@ -82,6 +89,15 @@ def _load_sdk() -> Any:
     except ImportError as exc:
         raise SynthesisError(INSTALL_HINT) from exc
     return anthropic
+
+
+class _TruncatedError(SynthesisError):
+    """Internal signal: the reply hit the token ceiling mid-structure.
+
+    Distinguished from other malformed output because the remedy differs. A
+    truncated reply will truncate again on an identical retry, so the retry has
+    to ask for less.
+    """
 
 
 class LlmSynthesizer:
@@ -157,7 +173,34 @@ class LlmSynthesizer:
         if not evidence:
             return []
 
-        prompt = build_user_prompt(question, evidence, max_claims=self._max_claims)
+        empty = Usage(input_tokens=0, output_tokens=0, latency_seconds=0.0)
+        try:
+            citations, spent = self._attempt(question, evidence, self._max_claims, empty)
+        except _TruncatedError:
+            # The reply did not fit. Asking for fewer claims is the only retry
+            # that can succeed, and a shorter answer beats no answer. The failed
+            # attempt's tokens are read back from ``_last_usage``, which the
+            # attempt records before raising, so the retry adds to them rather
+            # than restarting the count.
+            fewer = max(1, self._max_claims // 2)
+            citations, spent = self._attempt(question, evidence, fewer, self._last_usage or empty)
+        except SynthesisError:
+            # Other malformed output is sampling noise; an identical retry works.
+            citations, spent = self._attempt(
+                question, evidence, self._max_claims, self._last_usage or empty
+            )
+        self._last_usage = spent
+        return citations
+
+    def _attempt(
+        self,
+        question: str,
+        evidence: list[RetrievedEvidence],
+        max_claims: int,
+        spent: Usage,
+    ) -> tuple[list[Citation], Usage]:
+        """One call. Usage accumulates across attempts so a retry is still billed."""
+        prompt = build_user_prompt(question, evidence, max_claims=max_claims)
         started = self._timer()
         try:
             message = self._client.messages.create(
@@ -173,15 +216,31 @@ class LlmSynthesizer:
             raise SynthesisError(msg) from exc
         elapsed = self._timer() - started
 
-        citations, unsupported = self._ground(_extract_claims(message), evidence)
         usage = getattr(message, "usage", None)
-        self._last_usage = Usage(
-            input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
-            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
-            latency_seconds=elapsed,
-            unsupported_citations=unsupported,
+        running = Usage(
+            input_tokens=spent.input_tokens + int(getattr(usage, "input_tokens", 0) or 0),
+            output_tokens=spent.output_tokens + int(getattr(usage, "output_tokens", 0) or 0),
+            latency_seconds=spent.latency_seconds + elapsed,
+            unsupported_citations=spent.unsupported_citations,
         )
-        return citations
+        # Charged even when the attempt fails: the tokens were spent either way,
+        # and a budget that ignored failed calls would understate the cost.
+        self._last_usage = running
+
+        if getattr(message, "stop_reason", None) == "max_tokens":
+            msg = (
+                f"the model's reply was cut off at the {self._max_tokens} token limit"
+                " before it finished recording claims"
+            )
+            raise _TruncatedError(msg)
+
+        citations, unsupported = self._ground(_extract_claims(message), evidence)
+        return citations, Usage(
+            input_tokens=running.input_tokens,
+            output_tokens=running.output_tokens,
+            latency_seconds=running.latency_seconds,
+            unsupported_citations=running.unsupported_citations + unsupported,
+        )
 
     def _ground(
         self, entries: list[dict[str, Any]], evidence: list[RetrievedEvidence]

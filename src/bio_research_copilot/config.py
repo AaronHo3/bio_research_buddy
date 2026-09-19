@@ -27,5 +27,12 @@ class Settings(BaseSettings):
     # deterministic extractive provider, so the project runs with no paid service.
     anthropic_api_key: str | None = None
     llm_model: str = "claude-sonnet-5"
-    llm_max_tokens: int = Field(default=1024, gt=0)
+    llm_max_tokens: int = Field(default=2048, gt=0)
     judge_model: str = "claude-sonnet-5"
+    # A question is not a PubMed query. Planning the translation is a short,
+    # well-specified job, so the cheap fast model is the right one.
+    planner_model: str = "claude-haiku-4-5-20251001"
+
+    # Public demo guardrails. The daily token ceiling is the hard cap on what a
+    # deployment can spend; at zero the demo answers extractively and costs nothing.
+    demo_daily_tokens: int = Field(default=200_000, ge=0)

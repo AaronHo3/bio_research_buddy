@@ -378,6 +378,8 @@ Coverage: 0.846 recall at k=10, against a 0.890 union ceiling. Ordering: 0.826 n
 
 ## Synthesis: does a language model beat the extractive baseline?
 
+> **Which pipeline these numbers describe.** Everything in this document measures the *stored* pipeline: a frozen 60-paper corpus, titles and abstracts only, BM25 retrieval. The deployed demo is a different system — it searches live PubMed, reads full text from PubMed Central where it exists, and chunks it. Read these as controlled comparisons between components, not as a description of what a visitor to the demo gets. The section on the live pipeline at the end says what changes.
+
 Everything above measures retrieval. This measures what is done with what was retrieved. Three providers, same BM25 retrieval, same eight-passage evidence budget, all 12 questions.
 
 Citation *integrity* is deliberately not in the table. `ResearchAnswer` refuses to hold a citation pointing outside its own evidence, so integrity is 100% by construction for every provider and reporting it would be measuring a tautology. The column that replaces it counts fabrication *attempts*: evidence ids a provider returned that it was never given.
@@ -462,6 +464,29 @@ What they did is infer a mechanism from a knockdown experiment, which is routine
 
 So the most severe verdict the judge issued on either model is one it argued itself out of. That is a finding about the judge, not about the synthesis.
 
+### Changing the prompt to combine sources cost nothing measurable
+
+The first prompt asked for claims mapped to supporting evidence. Every one of Sonnet's 40 claims cited exactly one passage, so an answer read as a list of what each paper said rather than as a synthesis of what the literature says. The prompt was rewritten to ask for one claim citing several passages where they agree, to report disagreement with both sides cited, and explicitly not to widen a claim past its evidence when combining.
+
+The expectation was that combining would cost faithfulness, since reaching past the evidence is exactly the failure that produces a `partially_supported` verdict. It did not.
+
+| | Original prompt | Combining prompt |
+|---|---|---|
+| Claims | 40 | 34 |
+| Claims citing more than one paper | 0 | 3 |
+| Strict faithfulness | 0.700 | **0.727** |
+| Lenient faithfulness | **0.975** | 0.939 |
+| Cited papers judged relevant | 0.775 | **0.779** |
+| Papers per answer | 4.1 | **4.4** |
+
+Fewer claims, each resting on more papers, with faithfulness unchanged within the noise of a 34-claim sample. The lenient rate fell because `unsupported` went from one claim to two, which on this sample size is a single claim rather than a trend.
+
+The combining rate is modest here because this pipeline indexes abstracts, and a paper contributes one passage to an abstract-only index; there is little to combine. Against live full text the same prompt produces claims citing four papers at once.
+
+A useful non-result: on a question about the limits of base editing accuracy, the live system still produced no multi-source claims, because its retrieved passages each made a genuinely distinct point. The instruction produces combination where the evidence overlaps and not where it does not, which is better than combining uniformly.
+
+One claim of the 34 could not be judged: the judge returned a degenerate tool call carrying no verdict, twice. It is excluded from the rates rather than given a default, and counted in the report, because a guessed verdict would corrupt the number this measurement exists to produce.
+
 ### Human validation: the judge is stricter than its author
 
 20 of Sonnet's 40 claims were drawn with a fixed seed and labelled by hand before the judge's verdicts were read.
@@ -484,6 +509,32 @@ The pattern is a threshold: the human judged whether the gist held, the judge ju
 
 Two consequences. The strict rates above should be read as a lower bound under a demanding standard rather than as a defect rate. And a single labeller comparing against a single judge cannot separate "the judge is strict" from "the labeller is lenient"; only a second human could.
 
+## The live pipeline: what the demo does that the benchmark does not
+
+The deployed demo is not the system measured above, and the differences matter enough that the numbers should not be carried across.
+
+**The corpus is PubMed, not 60 papers.** Each question runs a fresh search, fetches about thirty papers, and discards the index afterwards. There is no stored corpus, no vector database, and no index that can drift from the source.
+
+**Full text is read where it exists.** PubMed itself carries only citations and abstracts. Full text lives in PubMed Central, and only part of it can be downloaded. Measured across four relevance-ranked queries, 10 to 20 of every 30 results had a PMC record, and 17 of 18 of those returned a usable body. A body runs to tens of thousands of characters against roughly fifteen hundred for an abstract, so the papers that do resolve supply most of the evidence even when half the results do not.
+
+**Retrieval runs twice.** Abstracts for all thirty results are ranked first to decide which papers are worth reading; availability is then checked for every one of them in a single `elink` call; and full text is fetched only for the best few that actually have a body. An earlier version chose the eight most relevant papers and only then discovered most were not in PMC, which yielded full text for two of eight. Checking availability before spending the expensive call raised that to eight of eight.
+
+**Bodies are chunked, not passed whole.** Sections are the unit of meaning and are split into overlapping windows of about 1,400 characters when they exceed that, with the section label carried onto every piece. A citation therefore points at something a reader can check in a few seconds rather than at a whole paper.
+
+### Abstention means something different now
+
+Three benchmark questions are labelled unanswerable. They were unanswerable *relative to the frozen 60-paper corpus*, having been chosen to sit outside its three topics. Against live PubMed all three are answered, and answered well:
+
+- *Which malaria vaccine has the highest efficacy in children?* names RTS,S and R21.
+- *What are the common side effects of statins in elderly patients?* leads with myopathy.
+- *What is the optimal water temperature for zebrafish husbandry?* reports that published guidance is variable and often vague and that no single optimum is established, which is a truthful answer to a question with a shaky premise rather than a refusal.
+
+So the abstention figures above measure a corpus boundary, not a property of the questions, and they do not describe the demo. The demo still abstains, on different grounds: a question PubMed returns nothing for, or one whose retrieved passages do not support an answer. A question about a football result returns no papers and is refused; a question about changing a car tyre returns eleven papers and is still refused, because none of them contain a sentence that answers it.
+
+### What is not measured
+
+The live pipeline has no benchmark. Building one means judging relevance over a corpus that changes between runs, which is a different and harder problem than judging a frozen one. Everything stated about it here is observed behaviour on individual questions, not a measurement, and it is reported as such.
+
 ## Known limitations
 
 - 12 questions is enough to catch gross regressions and to support an error analysis, not to claim statistically significant differences between retrievers.
@@ -491,7 +542,7 @@ Two consequences. The strict rates above should be read as a lower bound under a
 - No development and test split, so no hyperparameter (such as the fusion constant) can be selected without overfitting. Growing the question set is the prerequisite for tuning anything.
 - Every configuration is compared on the same chunking strategy, which is not neutral between models. The MedCPT diagnostic shows a model with a specific input contract is penalised by it.
 - Judging is exhaustive within a topic but assumes no cross-topic relevance.
-- Titles and abstracts only; full-text relevance is out of scope.
+- Titles and abstracts only in the measured pipeline; the live demo reads full text, and that difference is unmeasured.
 - Synthesis results come from one run per provider. The SDK exposes no temperature control, so the numbers are not exactly reproducible; abstention decisions in particular could differ on a re-run.
 - Faithfulness is unmeasured. Citation correctness says a cited paper was relevant to the question, not that the claim follows from it.
 - Zero fabrication attempts in 24 calls is not evidence of a low fabrication rate.

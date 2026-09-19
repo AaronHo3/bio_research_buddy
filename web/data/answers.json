@@ -1,0 +1,829 @@
+{
+  "generated_at": "2026-09-19T03:37:55.310418Z",
+  "benchmark_version": "benchmark_v1",
+  "retriever": "bm25-v1",
+  "synthesizer": "anthropic:claude-sonnet-5",
+  "disclaimer": "For research and educational use only. Not medical advice.",
+  "answers": [
+    {
+      "id": "q01",
+      "question": "What mechanisms cause off-target edits by cytosine base editors?",
+      "type": "mechanism",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "In cytosine base editors (CBEs), the deaminase component derived from the AID/APOBEC (activation-induced cytidine deaminase/apolipoprotein B mRNA-editing enzyme catalytic polypeptide-like) protein family is responsible for causing considerable off-target effects and indels.",
+          "chunk_ids": [
+            "pubmed:36357717:1"
+          ],
+          "paper_ids": [
+            "36357717"
+          ]
+        },
+        {
+          "text": "Td-CGBE/Td-CBEs, which use a re-engineered adenine deaminase (TadA-8e with an N46L variant) instead of the natural AID/APOBEC deaminase, show only a background level of Cas9-dependent or Cas9-independent DNA/RNA off-target editing and very low indel effects, suggesting that the choice of deaminase component underlies off-target activity in cytosine base editors.",
+          "chunk_ids": [
+            "pubmed:36357717:1"
+          ],
+          "paper_ids": [
+            "36357717"
+          ]
+        },
+        {
+          "text": "Approaches to reduce off-target effects of CRISPR-based genome editing tools, including cytosine base editors, have been developed, encompassing off-target detection methods, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein delivery, and truncated gRNAs.",
+          "chunk_ids": [
+            "pubmed:32630835:1"
+          ],
+          "paper_ids": [
+            "32630835"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "36357717",
+          "title": "Re-engineering the adenine deaminase TadA-8e for efficient and specific CRISPR-based cytosine base editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/36357717/",
+          "journal": "Nature biotechnology",
+          "year": 2023
+        },
+        {
+          "paper_id": "32630835",
+          "title": "Latest Developed Strategies to Minimize the Off-Target Effects in CRISPR-Cas-Mediated Genome Editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/32630835/",
+          "journal": "Cells",
+          "year": 2020
+        }
+      ],
+      "passages": {
+        "pubmed:36357717:1": "Cytosine base editors (CBEs) efficiently generate precise C·G-to-T·A base conversions, but the activation-induced cytidine deaminase/apolipoprotein B mRNA-editing enzyme catalytic polypeptide-like (AID/APOBEC) protein family deaminase component induces considerable off-target effects and indels. To explore unnatural cytosine deaminases, we repurpose the adenine deaminase TadA-8e for cytosine conversion. The introduction of an N46L variant in TadA-8e eliminates its adenine deaminase activity and results in a TadA-8e-derived C-to-G base editor (Td-CGBE) capable of highly efficient and precise C·G-to-G·C editing. Through fusion with uracil glycosylase inhibitors and further introduction of additional variants, a series of Td-CBEs was obtained either with a high activity similar to that of BE4max or with higher precision compared to other reported accurate CBEs. Td-CGBE/Td-CBEs show very low indel effects and a background level of Cas9-dependent or Cas9-independent DNA/RNA off-target editing. Moreover, Td-CGBE/Td-CBEs are more efficient in generating accurate edits in homopolymeric cytosine sites in cells or mouse embryos, suggesting their accuracy and safety for gene therapy and other applications.",
+        "pubmed:32630835:1": "Gene editing that makes target gene modification in the genome by deletion or addition has revolutionized the era of biomedicine. Clustered regularly interspaced short palindromic repeats (CRISPR)/Cas9 emerged as a substantial tool due to its simplicity in use, less cost and extraordinary efficiency than the conventional gene-editing tools, including zinc finger nucleases (ZFNs) and Transcription activator-like effector nucleases (TALENs). However, potential off-target activities are crucial shortcomings in the CRISPR system. Numerous types of approaches have been developed to reduce off-target effects. Here, we review several latest approaches to reduce the off-target effects, including biased or unbiased off-target detection, cytosine or adenine base editors, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein (RNP) delivery and truncated gRNAs. This review article provides extensive information to cautiously interpret off-target effects to assist the basic and clinical applications in biomedicine."
+      },
+      "limitations": [
+        "3 claims drawn from 2 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q02",
+      "question": "How do adenine base editors compare with cytosine base editors in off-target activity?",
+      "type": "comparison",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "Cytosine base editors (CBEs) efficiently generate precise C·G-to-T·A base conversions, but the AID/APOBEC deaminase component they use induces considerable off-target effects and indels.",
+          "chunk_ids": [
+            "pubmed:36357717:1"
+          ],
+          "paper_ids": [
+            "36357717"
+          ]
+        },
+        {
+          "text": "To reduce off-target effects associated with conventional cytosine deaminases, researchers repurposed the adenine deaminase TadA-8e for cytosine base editing, creating Td-CGBE and Td-CBE variants that show very low indel effects and only background levels of Cas9-dependent or Cas9-independent DNA/RNA off-target editing, with some variants matching the activity of BE4max or exceeding the precision of other reported accurate CBEs.",
+          "chunk_ids": [
+            "pubmed:36357717:1"
+          ],
+          "paper_ids": [
+            "36357717"
+          ]
+        },
+        {
+          "text": "Adenosine base editors (ABEs) enable A·T to G·C conversions and avoid the double-strand breaks caused by CRISPR-Cas9, but their off-target editing effects have remained inadequately characterized.",
+          "chunk_ids": [
+            "pubmed:40207628:1"
+          ],
+          "paper_ids": [
+            "40207628"
+          ]
+        },
+        {
+          "text": "A new biochemical method called Selict-seq was developed to evaluate genome-wide off-target editing by ABEs, and it identified numerous unexpected off-target edits both within and outside the protospacer regions across three single-guide RNAs tested.",
+          "chunk_ids": [
+            "pubmed:40207628:1"
+          ],
+          "paper_ids": [
+            "40207628"
+          ]
+        },
+        {
+          "text": "Using Selict-seq, the ABE variant ABE8e(V106W) exhibited distinct off-target characteristics, including high editing rates (>10%) at previously unreported sites such as RNF2 and EMX1, as well as out-of-protospacer mutations.",
+          "chunk_ids": [
+            "pubmed:40207628:1"
+          ],
+          "paper_ids": [
+            "40207628"
+          ]
+        },
+        {
+          "text": "Reviews of gene-editing off-target mitigation strategies note that both cytosine and adenine base editors are among the approaches developed to reduce off-target effects compared to conventional nuclease-based CRISPR/Cas9 systems, though the passages do not provide a direct quantitative comparison of off-target rates between the two editor classes.",
+          "chunk_ids": [
+            "pubmed:32630835:1"
+          ],
+          "paper_ids": [
+            "32630835"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "36357717",
+          "title": "Re-engineering the adenine deaminase TadA-8e for efficient and specific CRISPR-based cytosine base editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/36357717/",
+          "journal": "Nature biotechnology",
+          "year": 2023
+        },
+        {
+          "paper_id": "40207628",
+          "title": "Selict-seq profiles genome-wide off-target effects in adenosine base editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/40207628/",
+          "journal": "Nucleic acids research",
+          "year": 2025
+        },
+        {
+          "paper_id": "32630835",
+          "title": "Latest Developed Strategies to Minimize the Off-Target Effects in CRISPR-Cas-Mediated Genome Editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/32630835/",
+          "journal": "Cells",
+          "year": 2020
+        }
+      ],
+      "passages": {
+        "pubmed:36357717:1": "Cytosine base editors (CBEs) efficiently generate precise C·G-to-T·A base conversions, but the activation-induced cytidine deaminase/apolipoprotein B mRNA-editing enzyme catalytic polypeptide-like (AID/APOBEC) protein family deaminase component induces considerable off-target effects and indels. To explore unnatural cytosine deaminases, we repurpose the adenine deaminase TadA-8e for cytosine conversion. The introduction of an N46L variant in TadA-8e eliminates its adenine deaminase activity and results in a TadA-8e-derived C-to-G base editor (Td-CGBE) capable of highly efficient and precise C·G-to-G·C editing. Through fusion with uracil glycosylase inhibitors and further introduction of additional variants, a series of Td-CBEs was obtained either with a high activity similar to that of BE4max or with higher precision compared to other reported accurate CBEs. Td-CGBE/Td-CBEs show very low indel effects and a background level of Cas9-dependent or Cas9-independent DNA/RNA off-target editing. Moreover, Td-CGBE/Td-CBEs are more efficient in generating accurate edits in homopolymeric cytosine sites in cells or mouse embryos, suggesting their accuracy and safety for gene therapy and other applications.",
+        "pubmed:40207628:1": "Adenosine base editors (ABEs) facilitate A·T to G·C base pair conversion with significant therapeutic potential for correcting pathogenic point mutations in human genetic diseases, such as sickle cell anemia and β-thalassemia. Unlike CRISPR-Cas9 systems that induce double-strand breaks, ABEs operate through precise deamination, avoiding chromosomal instability. However, the off-target editing effects of ABEs remain inadequately characterized. In this study, we present a biochemical method Selict-seq, designed to evaluate genome-wide off-target editing by ABEs. Selict-seq specifically captures deoxyinosine-containing single-stranded DNA and precisely identifies deoxyadenosine-to-deoxyinosine (dA-to-dI) mutation sites, elucidating the off-target effects induced by ABEs. Through investigations involving three single-guide RNAs, we identified numerous unexpected off-target edits both within and outside the protospacer regions. Notably, ABE8e(V106W) exhibited distinct off-target characteristics, including high editing rates (>10%) at previously unreported sites (e.g. RNF2 and EMX1) and out-of-protospacer mutations. These findings significantly advance our understanding of the off-target landscape associated with ABEs. In summary, our approach enables an unbiased analysis of the ABE editome and provides a widely applicable tool for specificity evaluation of various emerging genome editing technologies that produce intermediate products as deoxyinosine.",
+        "pubmed:32630835:1": "Gene editing that makes target gene modification in the genome by deletion or addition has revolutionized the era of biomedicine. Clustered regularly interspaced short palindromic repeats (CRISPR)/Cas9 emerged as a substantial tool due to its simplicity in use, less cost and extraordinary efficiency than the conventional gene-editing tools, including zinc finger nucleases (ZFNs) and Transcription activator-like effector nucleases (TALENs). However, potential off-target activities are crucial shortcomings in the CRISPR system. Numerous types of approaches have been developed to reduce off-target effects. Here, we review several latest approaches to reduce the off-target effects, including biased or unbiased off-target detection, cytosine or adenine base editors, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein (RNP) delivery and truncated gRNAs. This review article provides extensive information to cautiously interpret off-target effects to assist the basic and clinical applications in biomedicine."
+      },
+      "limitations": [
+        "6 claims drawn from 3 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q03",
+      "question": "Which methods detect genome-wide off-target effects of base editors?",
+      "type": "target",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "Selict-seq is a biochemical method designed to evaluate genome-wide off-target editing by adenosine base editors (ABEs) by specifically capturing deoxyinosine-containing single-stranded DNA and precisely identifying deoxyadenosine-to-deoxyinosine (dA-to-dI) mutation sites, allowing unbiased analysis of the ABE editome both within and outside protospacer regions.",
+          "chunk_ids": [
+            "pubmed:40207628:0",
+            "pubmed:40207628:1"
+          ],
+          "paper_ids": [
+            "40207628"
+          ]
+        },
+        {
+          "text": "Reviews of CRISPR/base editing note that off-target detection strategies can be categorized as biased or unbiased detection approaches, and these are discussed alongside base editor design strategies (cytosine or adenine base editors) as ways to characterize and reduce off-target effects.",
+          "chunk_ids": [
+            "pubmed:32630835:1"
+          ],
+          "paper_ids": [
+            "32630835"
+          ]
+        },
+        {
+          "text": "General reviews of CRISPR genome editing outline various off-target detection strategies developed to address the challenge of off-target effects, discussing their merits and limitations for gene editing research.",
+          "chunk_ids": [
+            "pubmed:31911131:1"
+          ],
+          "paper_ids": [
+            "31911131"
+          ]
+        },
+        {
+          "text": "A review focused on ophthalmology applications of CRISPR discusses off-targeting detection methods as part of assessing unintended genetic changes during CRISPR genome surgery.",
+          "chunk_ids": [
+            "pubmed:29746416:1"
+          ],
+          "paper_ids": [
+            "29746416"
+          ]
+        },
+        {
+          "text": "For cytosine base editors (CBEs), off-target effects including DNA/RNA off-target editing (both Cas9-dependent and Cas9-independent) and indels have been characterized, with engineered variants such as Td-CGBE/Td-CBEs showing very low indel effects and background-level off-target editing.",
+          "chunk_ids": [
+            "pubmed:36357717:1"
+          ],
+          "paper_ids": [
+            "36357717"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "40207628",
+          "title": "Selict-seq profiles genome-wide off-target effects in adenosine base editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/40207628/",
+          "journal": "Nucleic acids research",
+          "year": 2025
+        },
+        {
+          "paper_id": "32630835",
+          "title": "Latest Developed Strategies to Minimize the Off-Target Effects in CRISPR-Cas-Mediated Genome Editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/32630835/",
+          "journal": "Cells",
+          "year": 2020
+        },
+        {
+          "paper_id": "31911131",
+          "title": "Advances in detecting and reducing off-target effects generated by CRISPR-mediated genome editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/31911131/",
+          "journal": "Journal of genetics and genomics = Yi chuan xue bao",
+          "year": 2019
+        },
+        {
+          "paper_id": "29746416",
+          "title": "CRISPR GENOME SURGERY IN THE RETINA IN LIGHT OF OFF-TARGETING.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/29746416/",
+          "journal": "Retina (Philadelphia, Pa.)",
+          "year": 2018
+        },
+        {
+          "paper_id": "36357717",
+          "title": "Re-engineering the adenine deaminase TadA-8e for efficient and specific CRISPR-based cytosine base editing.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/36357717/",
+          "journal": "Nature biotechnology",
+          "year": 2023
+        }
+      ],
+      "passages": {
+        "pubmed:40207628:0": "Selict-seq profiles genome-wide off-target effects in adenosine base editing.",
+        "pubmed:40207628:1": "Adenosine base editors (ABEs) facilitate A·T to G·C base pair conversion with significant therapeutic potential for correcting pathogenic point mutations in human genetic diseases, such as sickle cell anemia and β-thalassemia. Unlike CRISPR-Cas9 systems that induce double-strand breaks, ABEs operate through precise deamination, avoiding chromosomal instability. However, the off-target editing effects of ABEs remain inadequately characterized. In this study, we present a biochemical method Selict-seq, designed to evaluate genome-wide off-target editing by ABEs. Selict-seq specifically captures deoxyinosine-containing single-stranded DNA and precisely identifies deoxyadenosine-to-deoxyinosine (dA-to-dI) mutation sites, elucidating the off-target effects induced by ABEs. Through investigations involving three single-guide RNAs, we identified numerous unexpected off-target edits both within and outside the protospacer regions. Notably, ABE8e(V106W) exhibited distinct off-target characteristics, including high editing rates (>10%) at previously unreported sites (e.g. RNF2 and EMX1) and out-of-protospacer mutations. These findings significantly advance our understanding of the off-target landscape associated with ABEs. In summary, our approach enables an unbiased analysis of the ABE editome and provides a widely applicable tool for specificity evaluation of various emerging genome editing technologies that produce intermediate products as deoxyinosine.",
+        "pubmed:32630835:1": "Gene editing that makes target gene modification in the genome by deletion or addition has revolutionized the era of biomedicine. Clustered regularly interspaced short palindromic repeats (CRISPR)/Cas9 emerged as a substantial tool due to its simplicity in use, less cost and extraordinary efficiency than the conventional gene-editing tools, including zinc finger nucleases (ZFNs) and Transcription activator-like effector nucleases (TALENs). However, potential off-target activities are crucial shortcomings in the CRISPR system. Numerous types of approaches have been developed to reduce off-target effects. Here, we review several latest approaches to reduce the off-target effects, including biased or unbiased off-target detection, cytosine or adenine base editors, prime editing, dCas9, Cas9 paired nickase, ribonucleoprotein (RNP) delivery and truncated gRNAs. This review article provides extensive information to cautiously interpret off-target effects to assist the basic and clinical applications in biomedicine.",
+        "pubmed:31911131:1": "CRISPR-mediated genome editing is a revolutionary technology for genome manipulation that uses the CRISPR-Cas systems and base editors. Currently, poor efficiency and off-target problems have impeded the application of CRISPR systems. The on-target efficiency has been improved in several advanced versions of CRISPR systems, whereas the off-target detection still remains a key challenge. Here, we outline the different versions of CRISPR systems and off-target detection strategies, discuss the merits and limitations of off-target detection methods, and provide potential implications for further gene editing research.",
+        "pubmed:29746416:1": "Recent concerns regarding the clinical utilization of clustered regularly interspaced short palindromic repeats (CRISPR) involve uncertainties about the potential detrimental effects that many arise due to unintended genetic changes, as in off-target mutagenesis, during CRISPR genome surgery. This review gives an overview of off-targeting detection methods and CRISPR's place in the clinical setting, specifically in the field of ophthalmology.",
+        "pubmed:36357717:1": "Cytosine base editors (CBEs) efficiently generate precise C·G-to-T·A base conversions, but the activation-induced cytidine deaminase/apolipoprotein B mRNA-editing enzyme catalytic polypeptide-like (AID/APOBEC) protein family deaminase component induces considerable off-target effects and indels. To explore unnatural cytosine deaminases, we repurpose the adenine deaminase TadA-8e for cytosine conversion. The introduction of an N46L variant in TadA-8e eliminates its adenine deaminase activity and results in a TadA-8e-derived C-to-G base editor (Td-CGBE) capable of highly efficient and precise C·G-to-G·C editing. Through fusion with uracil glycosylase inhibitors and further introduction of additional variants, a series of Td-CBEs was obtained either with a high activity similar to that of BE4max or with higher precision compared to other reported accurate CBEs. Td-CGBE/Td-CBEs show very low indel effects and a background level of Cas9-dependent or Cas9-independent DNA/RNA off-target editing. Moreover, Td-CGBE/Td-CBEs are more efficient in generating accurate edits in homopolymeric cytosine sites in cells or mouse embryos, suggesting their accuracy and safety for gene therapy and other applications."
+      },
+      "limitations": [
+        "5 claims drawn from 5 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q04",
+      "question": "What mechanisms drive resistance to PD-1 blockade in tumors?",
+      "type": "mechanism",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "In non-small cell lung cancer, resistance to PD-1/PD-L1 blockade can be understood through the cancer-immunity cycle, a seven-step process from antigen release to T cell recognition and killing of tumor cells, where alterations at each stage can result in resistance.",
+          "chunk_ids": [
+            "pubmed:40024354:1"
+          ],
+          "paper_ids": [
+            "40024354"
+          ]
+        },
+        {
+          "text": "Tumors with high expression of the receptor tyrosine kinase TYRO3 exhibit resistance to anti-PD-1/PD-L1 therapy, with TYRO3 inhibiting tumor cell ferroptosis triggered by anti-PD-1/PD-L1 and reducing the M1/M2 macrophage ratio to promote a protumor microenvironment.",
+          "chunk_ids": [
+            "pubmed:33855973:1"
+          ],
+          "paper_ids": [
+            "33855973"
+          ]
+        },
+        {
+          "text": "Chronic exposure to interferon gamma (IFNγ), despite being a key cytokine for cellular immunity, can paradoxically promote resistance to immune checkpoint blockade therapy by upregulating PARP14, which enhances effector T cell suppression and increases regulatory T cell presence in tumors.",
+          "chunk_ids": [
+            "pubmed:37752135:1"
+          ],
+          "paper_ids": [
+            "37752135"
+          ]
+        },
+        {
+          "text": "In hepatocellular carcinoma, CT10 regulator of kinase-like (CRKL) has been investigated for its role in driving resistance to anti-PD-1 therapy, although the underlying mechanisms of immunotherapy resistance in this cancer type remain elusive.",
+          "chunk_ids": [
+            "pubmed:38403027:1"
+          ],
+          "paper_ids": [
+            "38403027"
+          ]
+        },
+        {
+          "text": "The interaction between PD-1 and its ligand PD-L1 is an important mechanism by which human tumors achieve immune escape, and this interaction is closely associated with resistance mechanisms during anti-PD-1/PD-L1 immunotherapy.",
+          "chunk_ids": [
+            "pubmed:36177034:1"
+          ],
+          "paper_ids": [
+            "36177034"
+          ]
+        },
+        {
+          "text": "Monotherapy with immune checkpoint inhibitors targeting PD-1/PD-L1 occasionally demonstrates treatment resistance and limited efficacy, which has motivated combination strategies such as dual blockade with CTLA-4 that act at different stages of T cell activation to synergistically enhance immune responses against cancer cells.",
+          "chunk_ids": [
+            "pubmed:39068460:1"
+          ],
+          "paper_ids": [
+            "39068460"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "40024354",
+          "title": "Resistance to PD-1/PD-L1 immune checkpoint blockade in advanced non-small cell lung cancer.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/40024354/",
+          "journal": "Critical reviews in oncology/hematology",
+          "year": 2025
+        },
+        {
+          "paper_id": "33855973",
+          "title": "TYRO3 induces anti-PD-1/PD-L1 therapy resistance by limiting innate immunity and tumoral ferroptosis.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/33855973/",
+          "journal": "The Journal of clinical investigation",
+          "year": 2021
+        },
+        {
+          "paper_id": "37752135",
+          "title": "PARP14 inhibition restores PD-1 immune checkpoint inhibitor response following IFNγ-driven acquired resistance in preclinical cancer models.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/37752135/",
+          "journal": "Nature communications",
+          "year": 2023
+        },
+        {
+          "paper_id": "38403027",
+          "title": "CRKL dictates anti-PD-1 resistance by mediating tumor-associated neutrophil infiltration in hepatocellular carcinoma.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/38403027/",
+          "journal": "Journal of hepatology",
+          "year": 2024
+        },
+        {
+          "paper_id": "36177034",
+          "title": "The role of PD-1/PD-L1 and application of immune-checkpoint inhibitors in human cancers.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/36177034/",
+          "journal": "Frontiers in immunology",
+          "year": 2022
+        },
+        {
+          "paper_id": "39068460",
+          "title": "Dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 in lung cancer.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/39068460/",
+          "journal": "Journal of hematology & oncology",
+          "year": 2024
+        }
+      ],
+      "passages": {
+        "pubmed:40024354:1": "Lung cancer is one of the most common malignant tumors, of which non-small cell lung cancer (NSCLC) accounts for about 85 %. Although immune checkpoint inhibitors (ICIs), particularly PD-1/PD-L1 inhibitors, have significantly improved the prognosis of patients with NSCLC. There are still many patients do not benefit from ICIs. Primary resistance remains a major challenge in advanced NSCLC. The cancer-immunity cycle describes the process from antigen release to T cell recognition and killing of the tumor, which provides a framework for understanding anti-tumor immunity. The classical cycle consists of seven steps, and alterations at each stage can result in resistance. This review examines the current status of PD-1/PD-L1 blockade in the treatment of advanced NSCLC and explores potential mechanisms of resistance. We summarize the latest clinical trials of PD-1/PD-L1 inhibitors combined with other therapies and explore potential targets for overcoming primary resistance to PD-1/PD-L1 inhibitors.",
+        "pubmed:33855973:1": "Immune checkpoint blockade therapy has demonstrated promising clinical outcomes for multiple cancer types. However, the emergence of resistance as well as inadequate biomarkers for patient stratification have largely limited the clinical benefits. Here, we showed that tumors with high TYRO3 expression exhibited anti-programmed cell death protein 1/programmed death ligand 1 (anti-PD-1/PD-L1) resistance in a syngeneic mouse model and in patients who received anti-PD-1/PD-L1 therapy. Mechanistically, TYRO3 inhibited tumor cell ferroptosis triggered by anti-PD-1/PD-L1 and facilitated the development of a protumor microenvironment by reducing the M1/M2 macrophage ratio, resulting in resistance to anti-PD-1/PD-L1 therapy. Inhibition of TYRO3 promoted tumor ferroptosis and sensitized resistant tumors to anti-PD-1 therapy. Collectively, our findings suggest that TYRO3 could serve as a predictive biomarker for patient selection and a promising therapeutic target to overcome anti-PD-1/PD-L1 resistance.",
+        "pubmed:37752135:1": "Resistance mechanisms to immune checkpoint blockade therapy (ICBT) limit its response duration and magnitude. Paradoxically, Interferon γ (IFNγ), a key cytokine for cellular immunity, can promote ICBT resistance. Using syngeneic mouse tumour models, we confirm that chronic IFNγ exposure confers resistance to immunotherapy targeting PD-1 (α-PD-1) in immunocompetent female mice. We observe upregulation of poly-ADP ribosyl polymerase 14 (PARP14) in chronic IFNγ-treated cancer cell models, in patient melanoma with elevated IFNG expression, and in melanoma cell cultures from ICBT-progressing lesions characterised by elevated IFNγ signalling. Effector T cell infiltration is enhanced in tumours derived from cells pre-treated with IFNγ in immunocompetent female mice when PARP14 is pharmacologically inhibited or knocked down, while the presence of regulatory T cells is decreased, leading to restoration of α-PD-1 sensitivity. Finally, we determine that tumours which spontaneously relapse in immunocompetent female mice following α-PD-1 therapy upregulate IFNγ signalling and can also be re-sensitised upon receiving PARP14 inhibitor treatment, establishing PARP14 as an actionable target to reverse IFNγ-driven ICBT resistance.",
+        "pubmed:38403027:1": "The effectiveness of immune checkpoint inhibitor (ICI) therapy for hepatocellular carcinoma (HCC) is limited by treatment resistance. However, the mechanisms underlying immunotherapy resistance remain elusive. We aimed to identify the role of CT10 regulator of kinase-like (CRKL) in resistance to anti-PD-1 therapy in HCC.",
+        "pubmed:36177034:1": "Programmed cell death protein-1 (PD-1) is a checkpoint receptor expressed on the surface of various immune cells. PD-L1, the natural receptor for PD-1, is mainly expressed in tumor cells. Studies have indicated that PD-1 and PD-L1 are closely associated with the progression of human cancers and are promising biomarkers for cancer therapy. Moreover, the interaction of PD-1 and PD-L1 is one of the important mechanism by which human tumors generate immune escape. This article provides a review on the role of PD-L1/PD-1, mechanisms of immune response and resistance, as well as immune-related adverse events in the treatment of anti-PD-1/PD-L1 immunotherapy in human cancers. Moreover, we summarized a large number of clinical trials to successfully reveal that PD-1/PD-L1 Immune-checkpoint inhibitors have manifested promising therapeutic effects, which have been evaluated from different perspectives, including overall survival, objective effective rate and medium progression-free survival. Finally, we pointed out the current problems faced by PD-1/PD-L1 Immune-checkpoint inhibitors and its future prospects. Although PD-1/PD-L1 immune checkpoint inhibitors have been widely used in the treatment of human cancers, tough challenges still remain. Combination therapy and predictive models based on integrated biomarker determination theory may be the future directions for the application of PD-1/PD-L1 Immune-checkpoint inhibitors in treating human cancers.",
+        "pubmed:39068460:1": "Cancer immunotherapies, represented by immune checkpoint inhibitors (ICIs), have reshaped the treatment paradigm for both advanced non-small cell lung cancer and small cell lung cancer. Programmed death receptor-1/programmed death receptor ligand-1 (PD-1/PD-L1) and cytotoxic T lymphocyte-associated antigen-4 (CTLA-4) are some of the most common and promising targets in ICIs. Compared to ICI monotherapy, which occasionally demonstrates treatment resistance and limited efficacy, the dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 operates at different stages of T cell activation with synergistically enhancing immune responses against cancer cells. This emerging dual therapy heralds a new direction for cancer immunotherapy, which, however, may increase the risk of drug-related adverse reactions while improving efficacy. Previous clinical trials have explored combination therapy strategy of anti-PD-1/PD-L1 and anti-CTLA-4 agents in lung cancer, yet its efficacy remains to be unclear with the inevitable incidence of immune-related adverse events. The recent advent of bispecific antibodies has made this sort of dual targeting more feasible, aiming to alleviate toxicity without compromising efficacy. Thus, this review highlights the role of dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 in treating lung cancer, and further elucidates its pre-clinical mechanisms and current advancements in clinical trials. Besides, we also provide novel insights into the potential combinations of dual blockade therapies with other strategies to optimize the future treatment mode for lung cancer."
+      },
+      "limitations": [
+        "6 claims drawn from 6 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q05",
+      "question": "How does combined CTLA-4 and PD-1 blockade compare with PD-1 monotherapy?",
+      "type": "comparison",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "Compared to ICI monotherapy, which occasionally shows treatment resistance and limited efficacy, dual blockade of PD-1/PD-L1 and CTLA-4 acts at different stages of T cell activation and synergistically enhances immune responses against cancer cells in lung cancer.",
+          "chunk_ids": [
+            "pubmed:39068460:1"
+          ],
+          "paper_ids": [
+            "39068460"
+          ]
+        },
+        {
+          "text": "This dual PD-1/PD-L1 and CTLA-4 blockade therapy may increase the risk of drug-related adverse reactions, including immune-related adverse events, while improving efficacy, and clinical trials in lung cancer have shown the efficacy of this combination remains unclear alongside an inevitable incidence of immune-related adverse events.",
+          "chunk_ids": [
+            "pubmed:39068460:1"
+          ],
+          "paper_ids": [
+            "39068460"
+          ]
+        },
+        {
+          "text": "A meta-analysis of neoadjuvant immune checkpoint inhibitor trials in melanoma showed a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1.",
+          "chunk_ids": [
+            "pubmed:41478279:1"
+          ],
+          "paper_ids": [
+            "41478279"
+          ]
+        },
+        {
+          "text": "In subgroup analyses based on baseline interferon-gamma (IFN-γ) signature, adding (high-dose) anti-CTLA-4 to anti-PD-1 in IFN-γ high subgroups increased toxicity but not efficacy, whereas in IFN-γ low subgroups the addition of high-dose anti-CTLA-4 to anti-PD-1 increased efficacy while toxicity remained low.",
+          "chunk_ids": [
+            "pubmed:41478279:1"
+          ],
+          "paper_ids": [
+            "41478279"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "39068460",
+          "title": "Dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 in lung cancer.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/39068460/",
+          "journal": "Journal of hematology & oncology",
+          "year": 2024
+        },
+        {
+          "paper_id": "41478279",
+          "title": "Immune signature-based uncoupling of checkpoint inhibitor efficacy and toxicity.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/41478279/",
+          "journal": "Immunity",
+          "year": 2026
+        }
+      ],
+      "passages": {
+        "pubmed:39068460:1": "Cancer immunotherapies, represented by immune checkpoint inhibitors (ICIs), have reshaped the treatment paradigm for both advanced non-small cell lung cancer and small cell lung cancer. Programmed death receptor-1/programmed death receptor ligand-1 (PD-1/PD-L1) and cytotoxic T lymphocyte-associated antigen-4 (CTLA-4) are some of the most common and promising targets in ICIs. Compared to ICI monotherapy, which occasionally demonstrates treatment resistance and limited efficacy, the dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 operates at different stages of T cell activation with synergistically enhancing immune responses against cancer cells. This emerging dual therapy heralds a new direction for cancer immunotherapy, which, however, may increase the risk of drug-related adverse reactions while improving efficacy. Previous clinical trials have explored combination therapy strategy of anti-PD-1/PD-L1 and anti-CTLA-4 agents in lung cancer, yet its efficacy remains to be unclear with the inevitable incidence of immune-related adverse events. The recent advent of bispecific antibodies has made this sort of dual targeting more feasible, aiming to alleviate toxicity without compromising efficacy. Thus, this review highlights the role of dual blockade immunotherapy targeting PD-1/PD-L1 and CTLA-4 in treating lung cancer, and further elucidates its pre-clinical mechanisms and current advancements in clinical trials. Besides, we also provide novel insights into the potential combinations of dual blockade therapies with other strategies to optimize the future treatment mode for lung cancer.",
+        "pubmed:41478279:1": "Personalized escalation and de-escalation of immune checkpoint inhibitor (ICI) regimens may help to overcome upfront resistance and mitigate the risk for immune-related adverse events (irAEs). Here, we examined the association between pathological response and irAEs per ICI regimen. Meta-analysis of neoadjuvant ICI trials in melanoma illustrated a pattern of increased toxicity and efficacy with the addition and/or higher dosing of anti-CTLA-4 to anti-PD-1. We subgrouped anti-PD-1, low-dose anti-CTLA-4 + anti-PD-1, high-dose anti-CTLA-4 + anti-PD-1, and anti-PD-1 + anti-LAG-3 cohorts according to the baseline interferon-gamma (IFN-γ) signature and analyzed these for response and toxicity rates. Whereas in IFN-γ high subgroups the addition of (high-dose) anti-CTLA-4 increased toxicity but not efficacy, the addition of high-dose anti-CTLA-4 to anti-PD-1 increased efficacy in the IFN-γ low subgroup, while toxicity remained low. Our findings suggest that baseline immune signatures may be used to separate risk for toxicity from risk for non-response, with implications for patient stratification and treatment regimens."
+      },
+      "limitations": [
+        "4 claims drawn from 2 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q06",
+      "question": "Which biomarkers predict response to immune checkpoint inhibitors?",
+      "type": "target",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "PD-L1 expression, tumor mutation burden, interferon-γ presence, microbiome composition, and extracellular matrix characteristics are biomarkers that play a crucial role in predicting responses to immune checkpoint inhibitor therapy.",
+          "chunk_ids": [
+            "pubmed:39447408:1"
+          ],
+          "paper_ids": [
+            "39447408"
+          ]
+        },
+        {
+          "text": "PD-1 and PD-L1 are considered promising biomarkers for cancer therapy because their interaction is closely associated with tumor progression and immune escape.",
+          "chunk_ids": [
+            "pubmed:36177034:1"
+          ],
+          "paper_ids": [
+            "36177034"
+          ]
+        },
+        {
+          "text": "Food and Drug Administration (FDA)-approved biomarkers exist for guiding immune checkpoint inhibitor therapy, and newer emerging biomarkers may further improve identification of patients likely to benefit from these treatments.",
+          "chunk_ids": [
+            "pubmed:40154483:1"
+          ],
+          "paper_ids": [
+            "40154483"
+          ]
+        },
+        {
+          "text": "The gut microbiome significantly influences the efficacy of immune checkpoint inhibitors, and modifying microbiota composition through fecal microbiota transplantation from a responder can be associated with clinical benefit in patients with anti-PD-1-refractory advanced solid cancers.",
+          "chunk_ids": [
+            "pubmed:39059396:1"
+          ],
+          "paper_ids": [
+            "39059396"
+          ]
+        },
+        {
+          "text": "Specific gut bacteria, such as Prevotella merdae Immunoactis, are associated with enhanced anti-tumor immune responses (stimulating cytotoxic T cell activity), while other species such as Lactobacillus salivarius and Bacteroides plebeius may inhibit anti-tumor immunity, suggesting microbiome composition could serve as a biomarker related to checkpoint inhibitor response.",
+          "chunk_ids": [
+            "pubmed:39059396:1"
+          ],
+          "paper_ids": [
+            "39059396"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "39447408",
+          "title": "A comprehensive review of immune checkpoint inhibitors for cancer treatment.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/39447408/",
+          "journal": "International immunopharmacology",
+          "year": 2024
+        },
+        {
+          "paper_id": "36177034",
+          "title": "The role of PD-1/PD-L1 and application of immune-checkpoint inhibitors in human cancers.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/36177034/",
+          "journal": "Frontiers in immunology",
+          "year": 2022
+        },
+        {
+          "paper_id": "40154483",
+          "title": "Navigating established and emerging biomarkers for immune checkpoint inhibitor therapy.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/40154483/",
+          "journal": "Cancer cell",
+          "year": 2025
+        },
+        {
+          "paper_id": "39059396",
+          "title": "Fecal microbiota transplantation improves anti-PD-1 inhibitor efficacy in unresectable or metastatic solid cancers refractory to anti-PD-1 inhibitor.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/39059396/",
+          "journal": "Cell host & microbe",
+          "year": 2024
+        }
+      ],
+      "passages": {
+        "pubmed:39447408:1": "Immunology-based therapies are emerging as an effective cancer treatment, using the body's immune system to target tumors. Immune checkpoints, which regulate immune responses to prevent tissue damage and autoimmunity, are often exploited by cancer cells to avoid destruction. The discovery of checkpoint proteins like PD-1/PD-L1 and CTLA-4 was pivotal in developing cancer immunotherapy. Immune checkpoint inhibitors (ICIs) have shown great success, with FDA-approved drugs like PD-1 inhibitors (Nivolumab, Pembrolizumab, Cemiplimab), PD-L1 inhibitors (Atezolizumab, Durvalumab, Avelumab), and CTLA-4 inhibitors (Ipilimumab, Tremelimumab), alongside LAG-3 inhibitor Relatlimab. Research continues on new checkpoints like TIM-3, VISTA, B7-H3, BTLA, and TIGIT. Biomarkers like PDL-1 expression, tumor mutation burden, interferon-γ presence, microbiome composition, and extracellular matrix characteristics play a crucial role in predicting responses to immunotherapy with checkpoint inhibitors. Despite their effectiveness, not all patients experience the same level of benefit, and organ-specific immune-related adverse events (irAEs) such as rash or itching, colitis, diarrhea, hyperthyroidism, and hypothyroidism may occur. Given the rapid advancements in this field and the variability in patient outcomes, there is an urgent need for a comprehensive review that consolidates the latest findings on immune checkpoint inhibitors, covering their clinical status, biomarkers, resistance mechanisms, strategies to overcome resistance, and associated adverse effects. This review aims to fill this gap by providing an analysis of the current clinical status of ICIs, emerging biomarkers, mechanisms of resistance, strategies to enhance therapeutic efficacy, and assessment of adverse effects. This review is crucial to furthering our understanding of ICIs and optimizing their application in cancer therapy.",
+        "pubmed:36177034:1": "Programmed cell death protein-1 (PD-1) is a checkpoint receptor expressed on the surface of various immune cells. PD-L1, the natural receptor for PD-1, is mainly expressed in tumor cells. Studies have indicated that PD-1 and PD-L1 are closely associated with the progression of human cancers and are promising biomarkers for cancer therapy. Moreover, the interaction of PD-1 and PD-L1 is one of the important mechanism by which human tumors generate immune escape. This article provides a review on the role of PD-L1/PD-1, mechanisms of immune response and resistance, as well as immune-related adverse events in the treatment of anti-PD-1/PD-L1 immunotherapy in human cancers. Moreover, we summarized a large number of clinical trials to successfully reveal that PD-1/PD-L1 Immune-checkpoint inhibitors have manifested promising therapeutic effects, which have been evaluated from different perspectives, including overall survival, objective effective rate and medium progression-free survival. Finally, we pointed out the current problems faced by PD-1/PD-L1 Immune-checkpoint inhibitors and its future prospects. Although PD-1/PD-L1 immune checkpoint inhibitors have been widely used in the treatment of human cancers, tough challenges still remain. Combination therapy and predictive models based on integrated biomarker determination theory may be the future directions for the application of PD-1/PD-L1 Immune-checkpoint inhibitors in treating human cancers.",
+        "pubmed:40154483:1": "Immune checkpoint inhibitors (ICIs) have improved outcomes of patients with many different cancers. These antibodies target molecules such as programmed cell death 1 (PD-1) or cytotoxic T lymphocyte associated protein 4 (CTLA-4) which normally function to limit immune activity. Treatment with ICIs reactivates T cells to destroy tumor cells in a highly specific manner, which in some patients, results in dramatic remissions and durable disease control. Over the last decade, much effort has been directed at characterizing factors that drive efficacy and resistance to ICI therapy. Food and Drug Administration (FDA)-approved biomarkers for ICI therapy have facilitated more judicious treatment of cancer patients and transformed the field of precision oncology. Yet, adaptive immunity against cancers is complex, and newer data have revealed the potential utility of other biomarkers. In this review, we discuss the utility of currently approved biomarkers and highlight how emerging biomarkers can further improve the identification of patients who benefit from ICIs.",
+        "pubmed:39059396:1": "The gut microbiome significantly influences immune responses and the efficacy of immune checkpoint inhibitors. We conducted a clinical trial (NCT04264975) combining an anti-programmed death-1 (PD-1) inhibitor with fecal microbiota transplantation (FMT) from anti-PD-1 responder in 13 patients with anti-PD-1-refractory advanced solid cancers. FMT induced sustained microbiota changes and clinical benefits in 6 of 13 patients, with 1 partial response and 5 stable diseases, achieving an objective response rate of 7.7% and a disease control rate of 46.2%. The clinical response correlates with increased cytotoxic T cells and immune cytokines in blood and tumors. We isolated Prevotella merdae Immunoactis from a responder to FMT, which stimulates T cell activity and suppresses tumor growth in mice by enhancing cytotoxic T cell infiltration. Additionally, we found Lactobacillus salivarius and Bacteroides plebeius may inhibit anti-tumor immunity. Our findings suggest that FMT with beneficial microbiota can overcome resistance to anti-PD-1 inhibitors in advanced solid cancers, especially gastrointestinal cancers."
+      },
+      "limitations": [
+        "5 claims drawn from 4 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q07",
+      "question": "How does amyloid beta promote tau pathology in Alzheimer's disease?",
+      "type": "mechanism",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "Amyloid beta and phosphorylated tau together contribute to defective autophagy and mitophagy in Alzheimer's disease, suggesting that amyloid beta pathology is linked to disrupted cellular clearance mechanisms alongside tau abnormalities.",
+          "chunk_ids": [
+            "pubmed:31121890:0"
+          ],
+          "paper_ids": [
+            "31121890"
+          ]
+        },
+        {
+          "text": "The dendritic function of tau has been shown to mediate amyloid-beta toxicity in Alzheimer's disease mouse models, indicating an interdependent relationship between the two proteins in producing neuronal damage.",
+          "chunk_ids": [
+            "pubmed:20655099:0"
+          ],
+          "paper_ids": [
+            "20655099"
+          ]
+        },
+        {
+          "text": "There is a proposed synergy between amyloid-beta and tau in driving Alzheimer's disease pathology, rather than either protein acting entirely independently.",
+          "chunk_ids": [
+            "pubmed:32778792:0"
+          ],
+          "paper_ids": [
+            "32778792"
+          ]
+        },
+        {
+          "text": "Synaptic mitochondria have been identified as an early shared target of both amyloid-beta and tau in Alzheimer's disease, pointing to a common site through which these pathologies may interact.",
+          "chunk_ids": [
+            "pubmed:34719499:0"
+          ],
+          "paper_ids": [
+            "34719499"
+          ]
+        },
+        {
+          "text": "Amyloid-beta, phosphorylated tau, and inflammation or excessive calcium can interact in feedforward cycles that drive Alzheimer's disease pathology, and there is ongoing debate about whether amyloid or tau initiates the disease process.",
+          "chunk_ids": [
+            "pubmed:40767321:1",
+            "pubmed:40767321:0"
+          ],
+          "paper_ids": [
+            "40767321"
+          ]
+        },
+        {
+          "text": "Reelin has been described as a molecular link connecting Apolipoprotein E4, tau, and amyloid-beta in Alzheimer's disease.",
+          "chunk_ids": [
+            "pubmed:38754634:0"
+          ],
+          "paper_ids": [
+            "38754634"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "31121890",
+          "title": "Amyloid Beta and Phosphorylated Tau-Induced Defective Autophagy and Mitophagy in Alzheimer's Disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/31121890/",
+          "journal": "Cells",
+          "year": 2019
+        },
+        {
+          "paper_id": "20655099",
+          "title": "Dendritic function of tau mediates amyloid-beta toxicity in Alzheimer's disease mouse models.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/20655099/",
+          "journal": "Cell",
+          "year": 2010
+        },
+        {
+          "paper_id": "32778792",
+          "title": "Synergy between amyloid-β and tau in Alzheimer's disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/32778792/",
+          "journal": "Nature neuroscience",
+          "year": 2020
+        },
+        {
+          "paper_id": "34719499",
+          "title": "Synaptic Mitochondria: An Early Target of Amyloid-β and Tau in Alzheimer's Disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/34719499/",
+          "journal": "Journal of Alzheimer's disease : JAD",
+          "year": 2021
+        },
+        {
+          "paper_id": "40767321",
+          "title": "An integrated view of the relationships between amyloid, tau, and inflammatory pathophysiology in Alzheimer's disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/40767321/",
+          "journal": "Alzheimer's & dementia : the journal of the Alzheimer's Association",
+          "year": 2025
+        },
+        {
+          "paper_id": "38754634",
+          "title": "Reelin links Apolipoprotein E4, Tau, and Amyloid-β in Alzheimer's disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/38754634/",
+          "journal": "Ageing research reviews",
+          "year": 2024
+        }
+      ],
+      "passages": {
+        "pubmed:31121890:0": "Amyloid Beta and Phosphorylated Tau-Induced Defective Autophagy and Mitophagy in Alzheimer's Disease.",
+        "pubmed:20655099:0": "Dendritic function of tau mediates amyloid-beta toxicity in Alzheimer's disease mouse models.",
+        "pubmed:32778792:0": "Synergy between amyloid-β and tau in Alzheimer's disease.",
+        "pubmed:34719499:0": "Synaptic Mitochondria: An Early Target of Amyloid-β and Tau in Alzheimer's Disease.",
+        "pubmed:40767321:1": "Alzheimer's disease (AD) research is a large and burgeoning field, where varied methodological approaches are providing multifaceted, but sometimes contradictory, views on the etiology and progression of pathology. The current review aims to summarize and integrate these findings to provide greater coherence to an increasingly splintered field. We provide an overview of the findings from each subfield (neuropathology, positron emission tomography imaging, fluid biomarkers, genetics, transcriptomics/proteomics), highlighting the strengths and weaknesses of each approach and, where possible, trying to resolve discrepancies between subfields. In particular, we address arguments about whether amyloid versus tau initiates pathology, and integrate nanoscale data from aging macaques to improve clarity regarding the earliest pathological stages, as initial phosphorylation events can be lost post mortem in human tissue. We find that Aβ42, phosphorylated tau, and inflammation/excessive calcium can all interact in feedforward cycles to drive AD pathology. Increasing cohesion across subdisciplines will strengthen our understanding of this devastating disease. HIGHLIGHTS: AD research is an expansive field, where subfields often diverge. The current review integrates across approaches to give a more cohesive view. Many methods cannot detect the earliest changes in brain. The new fluid biomarker pT217Tau shows that soluble tau pathology begins early. Relating amyloid/tau pathologies to inflammation is key for understanding sporadic AD.",
+        "pubmed:40767321:0": "An integrated view of the relationships between amyloid, tau, and inflammatory pathophysiology in Alzheimer's disease.",
+        "pubmed:38754634:0": "Reelin links Apolipoprotein E4, Tau, and Amyloid-β in Alzheimer's disease."
+      },
+      "limitations": [
+        "6 claims drawn from 6 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q08",
+      "question": "Does tau pathology or amyloid burden correlate better with cognitive decline?",
+      "type": "comparison",
+      "abstained": false,
+      "abstain_reason": null,
+      "claims": [
+        {
+          "text": "The link between the classic Alzheimer's disease histopathological hallmarks—amyloid plaques and neurofibrillary tangles—and AD-associated cognitive impairment has long been established, but researchers now favor a multitarget view involving interactions among amyloid, tau, and the cholinergic system to better explain cognitive decline rather than either pathology alone.",
+          "chunk_ids": [
+            "pubmed:32017704:1"
+          ],
+          "paper_ids": [
+            "32017704"
+          ]
+        },
+        {
+          "text": "Alzheimer's disease is still defined by the combined presence of amyloid and tau, but researchers are moving away from the simple assumption of linear causality proposed in the original amyloid hypothesis, suggesting that neither marker alone fully accounts for disease progression or cognitive outcomes.",
+          "chunk_ids": [
+            "pubmed:26921134:1"
+          ],
+          "paper_ids": [
+            "26921134"
+          ]
+        },
+        {
+          "text": "In a transgenic mouse model combining amyloid and tau pathology, removing amyloid from the brain with anti-amyloid immunotherapy did not reverse or slow tau pathology or alter synapse loss, suggesting that once amyloid and tau pathology interact, reducing amyloid burden alone is insufficient to curb degenerative changes linked to cognitive decline.",
+          "chunk_ids": [
+            "pubmed:39504519:1"
+          ],
+          "paper_ids": [
+            "39504519"
+          ]
+        },
+        {
+          "text": "Neuritic plaques (amyloid-beta) and neurofibrillary tangles (tau) both represent pathophysiologic hallmarks of Alzheimer's disease, but numerous other processes likely interact with risk and protective factors to produce the cognitive loss and functional impairments characteristic of AD dementia, indicating that cognitive decline cannot be attributed to amyloid or tau pathology alone.",
+          "chunk_ids": [
+            "pubmed:36396271:1"
+          ],
+          "paper_ids": [
+            "36396271"
+          ]
+        },
+        {
+          "text": "There is ongoing debate in Alzheimer's disease research about whether amyloid or tau initiates pathology, and current evidence suggests that Aβ42, phosphorylated tau, and inflammation/excessive calcium interact in feedforward cycles to drive AD pathology, rather than one factor alone best correlating with cognitive decline.",
+          "chunk_ids": [
+            "pubmed:40767321:1"
+          ],
+          "paper_ids": [
+            "40767321"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "paper_id": "32017704",
+          "title": "Amyloid-β, tau, and the cholinergic system in Alzheimer's disease: seeking direction in a tangle of clues.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/32017704/",
+          "journal": "Reviews in the neurosciences",
+          "year": 2020
+        },
+        {
+          "paper_id": "26921134",
+          "title": "Alzheimer's disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/26921134/",
+          "journal": "Lancet (London, England)",
+          "year": 2016
+        },
+        {
+          "paper_id": "39504519",
+          "title": "Tau, synapse loss and gliosis progress in an Alzheimer's mouse model after amyloid-β immunotherapy.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/39504519/",
+          "journal": "Brain : a journal of neurology",
+          "year": 2025
+        },
+        {
+          "paper_id": "36396271",
+          "title": "Pathophysiology of Alzheimer's Disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/36396271/",
+          "journal": "The Psychiatric clinics of North America",
+          "year": 2022
+        },
+        {
+          "paper_id": "40767321",
+          "title": "An integrated view of the relationships between amyloid, tau, and inflammatory pathophysiology in Alzheimer's disease.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/40767321/",
+          "journal": "Alzheimer's & dementia : the journal of the Alzheimer's Association",
+          "year": 2025
+        }
+      ],
+      "passages": {
+        "pubmed:32017704:1": "The link between histopathological hallmarks of Alzheimer's disease (AD), i.e. amyloid plaques, and neurofibrillary tangles, and AD-associated cognitive impairment, has long been established. However, the introduction of interactions between amyloid-beta (Aβ) as well as hyperphosphorylated tau, and the cholinergic system to the territory of descriptive neuropathology has drastically changed this field by adding the theory of synaptic neurotransmission to the toxic pas de deux in AD. Accumulating data show that a multitarget approach involving all amyloid, tau, and cholinergic hypotheses could better explain the evolution of events happening in AD. Various species of both Aβ and tau could be traced in cholinergic neurons of the basal forebrain system early in the course of the disease. These molecules induce degeneration in the neurons of this system. Reciprocally, aberrant cholinergic system modulation promotes changes in amyloid precursor protein (APP) metabolism and tau phosphorylation, resulting in neurotoxicity, neuroinflammation, and neuronal death. Altogether, these changes may better correlate with the clinical findings and cognitive impairment detected in AD patients. Failure of several of Aβ- and tau-related therapies further highlights the need for special attention to molecules that target all of these mentioned pathologic changes. Another noteworthy fact here is that none of the popular hypotheses of AD such as amyloidopathy or tauopathy seem to be responsible for the changes observed in AD alone. Thus, the main culprit should be sought higher in the stream somewhere in APP metabolism or Wnt signaling in the cholinergic system of the basal forebrain. Future studies should target these pathological events.",
+        "pubmed:26921134:1": "Although the prevalence of dementia continues to increase worldwide, incidence in the western world might have decreased as a result of better vascular care and improved brain health. Alzheimer's disease, the most prevalent cause of dementia, is still defined by the combined presence of amyloid and tau, but researchers are gradually moving away from the simple assumption of linear causality as proposed in the original amyloid hypothesis. Age-related, protective, and disease-promoting factors probably interact with the core mechanisms of the disease. Amyloid β42, and tau proteins are established core cerebrospinal biomarkers; novel candidate biomarkers include amyloid β oligomers and synaptic markers. MRI and fluorodeoxyglucose PET are established imaging techniques for diagnosis of Alzheimer's disease. Amyloid PET is gaining traction in the clinical arena, but validity and cost-effectiveness remain to be established. Tau PET might offer new insights and be of great help in differential diagnosis and selection of patients for trials. In the search for understanding the disease mechanism and keys to treatment, research is moving increasingly into the earliest phase of disease. Preclinical Alzheimer's disease is defined as biomarker evidence of Alzheimer's pathological changes in cognitively healthy individuals. Patients with subjective cognitive decline have been identified as a useful population in whom to look for preclinical Alzheimer's disease. Moderately positive results for interventions targeting several lifestyle factors in non-demented elderly patients and moderately positive interim results for lowering amyloid in pre-dementia Alzheimer's disease suggest that, ultimately, there will be a future in which specific anti-Alzheimer's therapy will be combined with lifestyle interventions targeting general brain health to jointly combat the disease. In this Seminar, we discuss the main developments in Alzheimer's research.",
+        "pubmed:39504519:1": "Preclinical studies assessing drugs for Alzheimer's disease (AD) are conducted in animal models that usually display only one neuropathological feature of AD, whereas patients present with a complex combination of comorbidities and neuropathologies. Importantly, it is well established that amyloid-β (Aβ) plaque and tau tangle accumulation interact in a phase-dependent manner, making it difficult to predict how targeting one might influence the other, as well as downstream degeneration. We developed a transgenic mouse model, APP/PS1xTau22, with progressive cortical Aβ deposition and hippocampal tau neurofibrillary inclusions, to investigate how both neuropathologies act jointly to bring about neural degeneration, synapse loss and glial phenotypes. We then assessed whether applying murine chimeric aducanumab, an anti-amyloid immunotherapy, could impact the synergistic relationship between amyloid and tau. Drug treatment resulted in a ∼70% reduction in Aβ deposition in hippocampal and cortical areas and produced a robust peri-plaque microglial and astrocytic response. Removing amyloid from the brain did not reverse or slow tau pathology or alter synapse loss. Our findings suggest that, once the interaction between amyloid and tau is set in motion, reducing plaque burden by Aβ immunotherapy may stimulate glial responses, but is insufficient to curb degenerative phenotypes in this model.",
+        "pubmed:36396271:1": "Alzheimer's disease (AD) is the most common neurodegenerative disease leading to dementia worldwide. While neuritic plaques consisting of aggregated amyloid-beta proteins and neurofibrillary tangles of accumulated tau proteins represent the pathophysiologic hallmarks of AD, numerous processes likely interact with risk and protective factors and one's culture to produce the cognitive loss, neuropsychiatric symptoms, and functional impairments that characterize AD dementia. Recent biomarker and neuroimaging research has revealed how the pathophysiology of AD may lead to symptoms, and as the pathophysiology of AD gains clarity, more potential treatments are emerging that aim to modify the disease and relieve its burden.",
+        "pubmed:40767321:1": "Alzheimer's disease (AD) research is a large and burgeoning field, where varied methodological approaches are providing multifaceted, but sometimes contradictory, views on the etiology and progression of pathology. The current review aims to summarize and integrate these findings to provide greater coherence to an increasingly splintered field. We provide an overview of the findings from each subfield (neuropathology, positron emission tomography imaging, fluid biomarkers, genetics, transcriptomics/proteomics), highlighting the strengths and weaknesses of each approach and, where possible, trying to resolve discrepancies between subfields. In particular, we address arguments about whether amyloid versus tau initiates pathology, and integrate nanoscale data from aging macaques to improve clarity regarding the earliest pathological stages, as initial phosphorylation events can be lost post mortem in human tissue. We find that Aβ42, phosphorylated tau, and inflammation/excessive calcium can all interact in feedforward cycles to drive AD pathology. Increasing cohesion across subdisciplines will strengthen our understanding of this devastating disease. HIGHLIGHTS: AD research is an expansive field, where subfields often diverge. The current review integrates across approaches to give a more cohesive view. Many methods cannot detect the earliest changes in brain. The new fluid biomarker pT217Tau shows that soluble tau pathology begins early. Relating amyloid/tau pathologies to inflammation is key for understanding sporadic AD."
+      },
+      "limitations": [
+        "5 claims drawn from 5 papers.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q09",
+      "question": "Which kinases phosphorylate tau in Alzheimer's disease?",
+      "type": "target",
+      "abstained": true,
+      "abstain_reason": "Retrieved passages did not contain a sentence that addresses the question.",
+      "claims": [],
+      "sources": [],
+      "passages": {},
+      "limitations": [
+        "No answer: the retrieved evidence does not support one.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q10",
+      "question": "What is the optimal water temperature for zebrafish husbandry?",
+      "type": "unanswerable",
+      "abstained": true,
+      "abstain_reason": "Retrieval returned no passages for this question.",
+      "claims": [],
+      "sources": [],
+      "passages": {},
+      "limitations": [
+        "No answer: the retrieved evidence does not support one.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q11",
+      "question": "Which malaria vaccine has the highest efficacy in children?",
+      "type": "unanswerable",
+      "abstained": true,
+      "abstain_reason": "Retrieved passages did not contain a sentence that addresses the question.",
+      "claims": [],
+      "sources": [],
+      "passages": {},
+      "limitations": [
+        "No answer: the retrieved evidence does not support one.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    },
+    {
+      "id": "q12",
+      "question": "What are the common side effects of statins in elderly patients?",
+      "type": "unanswerable",
+      "abstained": true,
+      "abstain_reason": "Retrieved passages did not contain a sentence that addresses the question.",
+      "claims": [],
+      "sources": [],
+      "passages": {},
+      "limitations": [
+        "No answer: the retrieved evidence does not support one.",
+        "Evidence is limited to titles and abstracts of stored papers, not full text."
+      ]
+    }
+  ]
+}

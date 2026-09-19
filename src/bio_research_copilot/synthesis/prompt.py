@@ -27,23 +27,27 @@ Rules:
 their exact id.
 2. Use only the supplied passages. Do not add facts from your own knowledge, \
 even where you are confident they are correct.
-3. A claim may cite several passages when they jointly support it. Prefer that \
-over repeating a claim, because a corroborated statement is more useful than two \
-separate ones.
+3. Synthesise across passages. Where several passages support the same point, \
+write one claim citing all of them rather than one claim per passage. A reader \
+wants what the literature says, not a list of what each paper says separately.
 4. Write each claim as a complete, standalone sentence that reads sensibly \
 without the question beside it. Do not write a bare title or a sentence fragment.
-5. Where passages disagree, say that they disagree rather than choosing a side.
-6. Do not give medical advice or make recommendations about patient care.
-7. If the passages do not support an answer to the question, record no claims at \
+5. Claim only what the passages you cite actually establish. Combining sources \
+must not widen a claim past its evidence: where one passage reports an \
+association and another a mechanism, say that, rather than asserting a cause.
+6. Where passages disagree, say so and cite both sides.
+7. Do not give medical advice or make recommendations about patient care.
+8. If the passages do not support an answer to the question, record no claims at \
 all. That is a valid and useful outcome: no answer is better than a wrong one.\
 """
 
 CLAIM_TOOL: dict[str, Any] = {
     "name": TOOL_NAME,
     "description": (
-        "Record the claims that answer the user's question, each mapped to the"
-        " evidence passages supporting it. Record an empty list when the"
-        " evidence does not support an answer."
+        "Record the claims that answer the user's question, each mapped to every"
+        " evidence passage supporting it. Prefer fewer claims each citing"
+        " several passages over one claim per passage. Record an empty list"
+        " when the evidence does not support an answer."
     ),
     "input_schema": {
         "type": "object",
@@ -102,5 +106,7 @@ def build_user_prompt(question: str, evidence: list[RetrievedEvidence], *, max_c
         "</evidence>\n\n"
         f"Question: {question}\n\n"
         f"Record at most {max_claims} claims that answer this question, using only"
-        " the passages above. Cite each passage by the exact id in its tag."
+        " the passages above. Cite every passage that supports a claim, by the"
+        " exact id in its tag, and combine passages making the same point into"
+        " one claim rather than repeating it."
     )

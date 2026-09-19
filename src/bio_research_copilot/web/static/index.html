@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evidence — answers traced to the literature</title>
+<meta name="description" content="Ask a biomedical question. Every claim links to the passage it came from.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Cool slate ground, indigo for anything you can follow, clay for anything
+       that qualifies what you are reading. Two accents only, so colour always
+       means one of those two things. */
+    --ground: #eef1f8;
+    --card: #ffffff;
+    --sunken: #f7f8fc;
+    --ink: #141830;
+    --ink-soft: #4d5470;
+    --ink-faint: #858ca8;
+    --rule: #dde2ef;
+    --indigo: #4b4ec7;
+    --indigo-wash: #e8e9fb;
+    --clay: #b1592f;
+    --clay-wash: #fbeee7;
+    --moss: #2f7a5f;
+    --radius: 16px;
+    --display: "Fraunces", Georgia, serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0e1018; --card: #171a26; --sunken: #12141f; --ink: #e9ebf5;
+      --ink-soft: #a7aec9; --ink-faint: #6f7694; --rule: #262a3a;
+      --indigo: #8f92f0; --indigo-wash: #1e2040; --clay: #e08a5e;
+      --clay-wash: #2d1d14; --moss: #63bd97;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0e1018; --card: #171a26; --sunken: #12141f; --ink: #e9ebf5;
+    --ink-soft: #a7aec9; --ink-faint: #6f7694; --rule: #262a3a;
+    --indigo: #8f92f0; --indigo-wash: #1e2040; --clay: #e08a5e;
+    --clay-wash: #2d1d14; --moss: #63bd97;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; color: var(--ink); font-family: var(--body);
+    font-size: 16.5px; line-height: 1.62; -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(1100px 520px at 12% -8%, var(--indigo-wash), transparent 62%),
+      radial-gradient(760px 420px at 96% 2%, var(--clay-wash), transparent 58%),
+      var(--ground);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 0 16px 96px; }
+
+  /* ---------- masthead ---------- */
+  header { padding: 60px 0 30px; }
+  .mark {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--indigo); margin-bottom: 16px;
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 5px 13px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--moss); }
+  h1 {
+    font-family: var(--display); font-weight: 600; font-size: clamp(2.25rem, 6vw, 3.3rem);
+    line-height: 1.04; letter-spacing: -0.022em; margin: 0 0 14px;
+  }
+  h1 em { font-style: italic; font-weight: 400; color: var(--indigo); }
+  .standfirst { font-size: 1.05rem; color: var(--ink-soft); margin: 0; max-width: 35em; }
+
+  /* ---------- pipeline diagram ---------- */
+  .pipeline {
+    display: flex; align-items: stretch; gap: 0; margin: 26px 0 0;
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .pipe {
+    flex: 1; padding: 13px 8px 12px; text-align: center; position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .pipe:not(:last-child)::after {
+    content: ""; position: absolute; right: -5px; top: 50%; width: 10px; height: 10px;
+    border-top: 1.5px solid var(--rule); border-right: 1.5px solid var(--rule);
+    transform: translateY(-50%) rotate(45deg); background: var(--card); z-index: 1;
+  }
+  .pipe svg { width: 19px; height: 19px; stroke: var(--indigo); fill: none;
+              stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .pipe span {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); line-height: 1.35;
+  }
+
+  /* ---------- ask ---------- */
+  .ask { margin: 22px 0 10px; }
+  .field {
+    display: flex; gap: 8px; align-items: stretch; background: var(--card);
+    border: 1px solid var(--rule); border-radius: var(--radius); padding: 7px;
+    box-shadow: 0 1px 2px rgba(20, 24, 48, 0.04);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field:focus-within {
+    border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-wash);
+  }
+  .field input {
+    flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
+    font: inherit; padding: 12px; outline: none;
+  }
+  .field input::placeholder { color: var(--ink-faint); }
+  .field button {
+    border: 0; border-radius: 11px; background: var(--indigo); color: #fff;
+    font: inherit; font-weight: 600; padding: 12px 24px; cursor: pointer;
+    transition: filter 0.15s;
+  }
+  .field button:hover { filter: brightness(1.08); }
+  .field button:disabled { opacity: 0.5; cursor: progress; }
+  .under { font-size: 0.85rem; color: var(--ink-faint); margin: 10px 2px 0; }
+
+  /* ---------- examples ---------- */
+  .lede {
+    font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 34px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .lede::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font: inherit; font-size: 0.86rem; text-align: left; cursor: pointer;
+    padding: 8px 14px; color: var(--ink-soft); background: var(--card);
+    border: 1px solid var(--rule); border-radius: 999px; transition: all 0.15s;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--indigo); }
+  .chip[aria-pressed="true"] {
+    color: #fff; background: var(--indigo); border-color: transparent;
+  }
+
+  /* ---------- answer ---------- */
+  .card {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: var(--radius); padding: 26px 28px; margin-top: 22px;
+    box-shadow: 0 1px 3px rgba(20, 24, 48, 0.05);
+  }
+  .asked {
+    font-family: var(--display); font-weight: 600; font-size: 1.3rem;
+    line-height: 1.26; letter-spacing: -0.012em; margin: 0 0 18px;
+  }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+  .stat {
+    flex: 1 1 108px; background: var(--sunken); border: 1px solid var(--rule);
+    border-radius: 11px; padding: 11px 13px;
+  }
+  .stat b {
+    display: block; font-family: var(--mono); font-size: 1.22rem; font-weight: 500;
+    line-height: 1.15; margin-bottom: 2px;
+  }
+  .stat span {
+    font-size: 0.63rem; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .stat.hl { background: var(--indigo-wash); border-color: transparent; }
+  .stat.hl b { color: var(--indigo); }
+
+  /* coverage meter: how much of the evidence was full text */
+  .meter { margin: 14px 0 22px; }
+  .meter-bar {
+    display: flex; height: 7px; border-radius: 4px; overflow: hidden;
+    background: var(--rule);
+  }
+  .meter-bar i { display: block; height: 100%; }
+  .meter-bar .full { background: var(--indigo); }
+  .meter-bar .abs { background: var(--ink-faint); opacity: 0.45; }
+  .meter-key {
+    display: flex; flex-wrap: wrap; gap: 14px; margin-top: 7px;
+    font-size: 0.74rem; color: var(--ink-faint);
+  }
+  .meter-key i {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+    margin-right: 5px; vertical-align: middle;
+  }
+
+  .answer { font-size: 1.04rem; line-height: 1.82; margin: 0; }
+  .ref {
+    font-family: var(--mono); font-size: 0.62rem; font-weight: 500;
+    vertical-align: super; line-height: 0; margin-left: 2px; padding: 2px 5px;
+    border: 0; border-radius: 4px; cursor: pointer;
+    color: var(--indigo); background: var(--indigo-wash); transition: all 0.12s;
+  }
+  .ref:hover, .ref[aria-expanded="true"] { background: var(--indigo); color: #fff; }
+
+  /* the passage behind a claim, revealed in place */
+  .quote {
+    margin: 12px 0 4px; padding: 13px 15px; background: var(--sunken);
+    border-left: 3px solid var(--indigo); border-radius: 0 9px 9px 0;
+    font-size: 0.9rem; line-height: 1.62; color: var(--ink-soft);
+  }
+  .quote .from {
+    display: block; font-family: var(--mono); font-size: 0.64rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--indigo);
+    margin-bottom: 6px;
+  }
+  .notice {
+    padding: 15px 17px; border-radius: 11px; background: var(--clay-wash);
+    color: var(--clay); font-size: 0.94rem;
+  }
+  .notice b { display: block; font-weight: 600; margin-bottom: 3px; }
+
+  /* ---------- sources ---------- */
+  .sub {
+    font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 26px 0 6px;
+  }
+  ol.sources { list-style: none; counter-reset: src; margin: 0; padding: 0; }
+  ol.sources li {
+    counter-increment: src; position: relative; padding: 11px 0 11px 34px;
+    border-top: 1px solid var(--rule); font-size: 0.92rem; line-height: 1.5;
+  }
+  ol.sources li::before {
+    content: counter(src); position: absolute; left: 0; top: 12px;
+    font-family: var(--mono); font-size: 0.68rem; color: var(--indigo);
+    background: var(--indigo-wash); border-radius: 5px; padding: 2px 7px;
+  }
+  ol.sources a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  ol.sources a:hover { border-bottom-color: var(--indigo); color: var(--indigo); }
+  .cite-meta { display: block; color: var(--ink-faint); font-size: 0.81rem; margin-top: 2px; }
+
+  details.caveats { margin-top: 22px; }
+  details.caveats summary {
+    cursor: pointer; font-size: 0.84rem; color: var(--ink-faint);
+    list-style: none; display: flex; align-items: center; gap: 7px;
+  }
+  details.caveats summary::-webkit-details-marker { display: none; }
+  details.caveats summary::before {
+    content: ">"; font-family: var(--mono); transition: transform 0.15s; display: inline-block;
+  }
+  details.caveats[open] summary::before { transform: rotate(90deg); }
+  details.caveats ul {
+    margin: 10px 0 0; padding-left: 18px; color: var(--ink-faint); font-size: 0.85rem;
+  }
+  details.caveats li { margin-bottom: 5px; }
+  .queried {
+    font-family: var(--mono); font-size: 0.75rem; color: var(--ink-soft);
+    background: var(--sunken); border: 1px solid var(--rule); border-radius: 9px;
+    padding: 10px 12px; margin-top: 10px; word-break: break-word; line-height: 1.55;
+  }
+  .queried em { color: var(--ink-faint); font-style: normal; }
+
+  /* ---------- progress ---------- */
+  .steps { list-style: none; margin: 0; padding: 0; }
+  .steps li {
+    padding: 8px 0 8px 28px; position: relative; color: var(--ink-faint);
+    font-size: 0.93rem; transition: color 0.25s;
+  }
+  .steps li::after {
+    content: ""; position: absolute; left: 7px; top: 26px; bottom: -8px;
+    width: 1px; background: var(--rule);
+  }
+  .steps li:last-child::after { display: none; }
+  .steps li::before {
+    content: ""; position: absolute; left: 4px; top: 16px; width: 7px; height: 7px;
+    border-radius: 50%; border: 1.5px solid var(--rule); background: var(--card);
+    transition: all 0.25s; z-index: 1;
+  }
+  .steps li.done { color: var(--ink); }
+  .steps li.done::before { background: var(--indigo); border-color: var(--indigo); }
+  .steps li.active::before { border-color: var(--indigo); animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.6); opacity: 0.45; }
+  }
+
+  footer {
+    margin-top: 54px; padding-top: 20px; border-top: 1px solid var(--rule);
+    color: var(--ink-faint); font-size: 0.83rem;
+  }
+  footer p { margin: 0 0 6px; }
+  @media (max-width: 620px) {
+    header { padding-top: 40px; }
+    .pipeline { flex-wrap: wrap; }
+    .pipe { flex: 1 1 50%; }
+    .pipe:not(:last-child)::after { display: none; }
+    .field { flex-direction: column; }
+    .field button { padding: 13px; }
+    .card { padding: 20px 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark"><span class="dot"></span>Live PubMed &middot; retrieval-augmented</div>
+    <h1>Answers you can <em>check</em>.</h1>
+    <p class="standfirst">
+      Ask a biomedical question in plain language. This searches PubMed, reads the papers
+      it finds, and writes an answer in which every sentence links to the passage behind it.
+    </p>
+
+    <div class="pipeline" id="pipeline">
+      <div class="pipe">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+        <span>Your<br>question</span>
+      </div>
+      <div class="pipe">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+        <span>Planned<br>query</span>
+      </div>
+      <div class="pipe">
+        <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 016.5 3H11v18H6.5A2.5 2.5 0 014 18.5z"/><path d="M20 5.5A2.5 2.5 0 0017.5 3H13v18h4.5a2.5 2.5 0 002.5-2.5z"/></svg>
+        <span>Papers<br>read</span>
+      </div>
+      <div class="pipe">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="8" y="14" width="8" height="6" rx="1.5"/></svg>
+        <span>Passages<br>ranked</span>
+      </div>
+      <div class="pipe">
+        <svg viewBox="0 0 24 24"><path d="M5 20V6a2 2 0 012-2h10a2 2 0 012 2v14l-7-3.5z"/></svg>
+        <span>Cited<br>answer</span>
+      </div>
+    </div>
+  </header>
+
+  <form class="ask" id="ask-form">
+    <div class="field">
+      <input id="q" maxlength="300" autocomplete="off" spellcheck="false"
+             placeholder="Why does my heart muscle get thick?">
+      <button id="go" type="submit">Ask</button>
+    </div>
+    <p class="under" id="under">Searching live PubMed. Answers take roughly fifteen seconds.</p>
+  </form>
+
+  <div class="lede">Or start with one of these</div>
+  <div class="chips" id="chips"></div>
+
+  <div id="out" aria-live="polite"></div>
+
+  <footer>
+    <p>Evidence is limited to what PubMed returns and to full text PubMed Central makes available.</p>
+    <p>For research and educational use only. Not medical advice.</p>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let DATA = null;
+let CURRENT = null;
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function stats(answer, seconds) {
+  const cells = [];
+  const push = (value, label, hl) =>
+    cells.push(`<div class="stat${hl ? " hl" : ""}"><b>${esc(value)}</b><span>${esc(label)}</span></div>`);
+  if (answer.papers_fetched > 0) push(answer.papers_fetched, "papers searched");
+  if (answer.full_text_papers > 0) push(answer.full_text_papers, "read in full", true);
+  push(answer.sources.length, answer.sources.length === 1 ? "source cited" : "sources cited");
+  if (seconds != null) push(seconds.toFixed(1) + "s", answer.cached ? "cached" : "elapsed");
+  return cells.length ? `<div class="stats">${cells.join("")}</div>` : "";
+}
+
+// How much of the evidence came from full text rather than an abstract. Shown
+// because it is the difference between reading a paper and reading its summary.
+function meter(answer) {
+  const total = answer.papers_fetched || 0;
+  const full = answer.full_text_papers || 0;
+  if (!total || !full) return "";
+  const pct = Math.max(2, Math.round((full / total) * 100));
+  return `<div class="meter">
+    <div class="meter-bar">
+      <i class="full" style="width:${pct}%"></i><i class="abs" style="width:${100 - pct}%"></i>
+    </div>
+    <div class="meter-key">
+      <span><i style="background:var(--indigo)"></i>${full} read in full</span>
+      <span><i style="background:var(--ink-faint);opacity:0.45"></i>${total - full} by abstract only</span>
+    </div>
+  </div>`;
+}
+
+function render(answer, seconds, kind) {
+  CURRENT = answer;
+  const parts = [`<div class="card">`];
+  parts.push(`<p class="asked">${esc(answer.question)}</p>`);
+  parts.push(stats(answer, seconds));
+  parts.push(meter(answer));
+
+  if (answer.abstained) {
+    parts.push(
+      `<div class="notice"><b>No answer from the literature.</b>` +
+      `${esc(answer.abstain_reason || "The retrieved papers do not support one.")}</div>`
+    );
+  } else {
+    // Sources are numbered once and every sentence keeps its own markers, so the
+    // answer reads as prose while each claim still shows what it rests on.
+    const order = new Map(answer.sources.map((s, i) => [s.paper_id, i + 1]));
+    const sentences = answer.claims.map((claim, index) => {
+      const seen = [];
+      for (const pid of claim.paper_ids) {
+        const n = order.get(pid);
+        if (n && !seen.includes(n)) seen.push(n);
+      }
+      const marks = seen.sort((a, b) => a - b).map((n) => {
+        const src = answer.sources[n - 1];
+        const title = src ? `${n}. ${src.title}` : `Source ${n}`;
+        return `<button class="ref" type="button" aria-expanded="false" ` +
+               `title="${esc(title)} — click to read the passage" ` +
+               `onclick="toggleQuote(${index}, this)">${n}</button>`;
+      }).join("");
+      let text = esc(claim.text).trim();
+      if (!/[.!?]$/.test(text)) text += ".";
+      return `${text}${marks}`;
+    });
+    parts.push(`<p class="answer">${sentences.join(" ")}</p>`);
+    parts.push(`<div id="quotes"></div>`);
+  }
+
+  if (answer.sources.length) {
+    parts.push(`<div class="sub">Sources</div><ol class="sources">`);
+    for (const s of answer.sources) {
+      const bits = [s.journal, s.year].filter(Boolean).join(" · ");
+      parts.push(
+        `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>` +
+        (bits ? `<span class="cite-meta">${esc(bits)}</span>` : "") + `</li>`
+      );
+    }
+    parts.push(`</ol>`);
+  }
+
+  const notes = answer.limitations || [];
+  if (notes.length || answer.search_term || kind === "recorded") {
+    parts.push(`<details class="caveats"><summary>How this answer was produced</summary>`);
+    if (kind === "recorded") {
+      parts.push(`<div class="queried"><em>Recorded during an evaluation run and replayed here, so it costs nothing to show.</em></div>`);
+    }
+    if (answer.search_term) {
+      parts.push(`<div class="queried"><em>PubMed query:</em><br>${esc(answer.search_term)}</div>`);
+    }
+    if (notes.length) {
+      parts.push(`<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`);
+    }
+    parts.push(`</details>`);
+  }
+
+  parts.push(`</div>`);
+  $("out").innerHTML = parts.join("");
+}
+
+// Reveal the passage a claim rests on, in place. This is the product's promise
+// made checkable: the reader sees the source text, not a link promising it.
+function toggleQuote(claimIndex, button) {
+  const host = $("quotes");
+  if (!host || !CURRENT) return;
+  const open = button.getAttribute("aria-expanded") === "true";
+  for (const b of document.querySelectorAll(".ref")) b.setAttribute("aria-expanded", "false");
+  if (open) { host.innerHTML = ""; return; }
+  button.setAttribute("aria-expanded", "true");
+
+  const claim = CURRENT.claims[claimIndex];
+  const passages = CURRENT.passages || {};
+  const blocks = (claim.chunk_ids || []).map((chunkId) => {
+    const text = passages[chunkId];
+    if (!text) return "";
+    const paperId = String(chunkId).split(":")[1];
+    const src = CURRENT.sources.find((s) => s.paper_id === paperId);
+    const label = src ? src.title : `Paper ${paperId}`;
+    return `<div class="quote"><span class="from">From: ${esc(label)}</span>${esc(text)}</div>`;
+  }).filter(Boolean);
+
+  host.innerHTML = blocks.length
+    ? blocks.join("")
+    : `<div class="quote">The passage text is not available for this answer.</div>`;
+}
+
+function selectChip(button) {
+  for (const el of document.querySelectorAll(".chip")) el.setAttribute("aria-pressed", "false");
+  if (button) button.setAttribute("aria-pressed", "true");
+}
+
+const STEPS = ["Planning the search", "Searching PubMed", "Reading the papers", "Writing the answer"];
+
+function showProgress() {
+  $("out").innerHTML =
+    `<div class="card"><ul class="steps" id="steps">` +
+    STEPS.map((s) => `<li>${esc(s)}</li>`).join("") + `</ul></div>`;
+  let step = 0;
+  const advance = () => {
+    const list = $("steps");
+    if (!list) return;
+    if (step > 0 && list.children[step - 1]) {
+      list.children[step - 1].classList.remove("active");
+      list.children[step - 1].classList.add("done");
+    }
+    if (step < STEPS.length) list.children[step].classList.add("active");
+    step += 1;
+  };
+  advance();
+  // Paced to the observed shape of a live call. The last step stays active until
+  // the real response arrives rather than pretending to have finished.
+  return setInterval(() => { if (step < STEPS.length) advance(); }, 2600);
+}
+
+async function errorMessage(res) {
+  // The server's own detail names the actual cause; a generic message hides it.
+  let detail = "";
+  try {
+    const body = await res.json();
+    if (body && body.detail) detail = String(body.detail);
+  } catch (e) { /* no JSON body */ }
+  if (res.status === 429) return "Too many questions from this address. Wait a minute and try again.";
+  if (res.status === 503) return "PubMed could not be reached, which is NCBI rather than this demo. " + detail;
+  if (res.status === 422) return "That question could not be read. Try rephrasing it.";
+  if (res.status === 502) return "Synthesis failed. " + (detail || "The model did not return a usable answer.");
+  return detail || "The question could not be answered just now.";
+}
+
+async function ask(question) {
+  $("go").disabled = true;
+  const timer = showProgress();
+  const started = performance.now();
+  try {
+    const res = await fetch("/api/answer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question }),
+    });
+    const seconds = (performance.now() - started) / 1000;
+    if (!res.ok) {
+      $("out").innerHTML =
+        `<div class="card"><div class="notice"><b>Could not answer.</b>${esc(await errorMessage(res))}</div></div>`;
+      return;
+    }
+    render(await res.json(), seconds, "live");
+  } catch (err) {
+    $("out").innerHTML =
+      `<div class="card"><div class="notice"><b>Something went wrong.</b>The request did not complete.</div></div>`;
+  } finally {
+    clearInterval(timer);
+    $("go").disabled = false;
+  }
+}
+
+$("ask-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const question = $("q").value.trim();
+  if (!question) return;
+  selectChip(null);
+  ask(question);
+});
+
+async function boot() {
+  let health = null;
+  try { health = await (await fetch("/api/health")).json(); } catch (e) { health = null; }
+  if (health && !health.model_available) {
+    $("under").textContent =
+      "Answers currently use the extractive baseline, which quotes sentences verbatim rather than writing them.";
+  }
+  try {
+    DATA = await (await fetch("/api/examples")).json();
+  } catch (e) {
+    $("chips").innerHTML = `<span class="under">Stored examples could not be loaded.</span>`;
+    return;
+  }
+  for (const answer of DATA.answers) {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.type = "button";
+    b.setAttribute("aria-pressed", "false");
+    b.textContent = answer.question;
+    b.onclick = () => {
+      selectChip(b);
+      $("q").value = answer.question;
+      render(answer, null, "recorded");
+      $("out").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    $("chips").appendChild(b);
+  }
+}
+
+boot();
+</script>
+</body>
+</html>

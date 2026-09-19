@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from bio_research_copilot.application.evaluate_synthesis import SynthesisReport
 from bio_research_copilot.application.ingest import utc_now
+from bio_research_copilot.synthesis.base import SynthesisError
 from bio_research_copilot.synthesis.faithfulness import Judgement, Verdict
 
 STRICT_VERDICTS: frozenset[str] = frozenset(("supported",))
@@ -52,6 +53,10 @@ class FaithfulnessReport(BaseModel):
     lenient_rate: float = Field(description="Supported or partially supported.")
     input_tokens: int
     output_tokens: int
+    unjudged: int = Field(
+        default=0,
+        description="Claims the judge could not rule on. Excluded from the rates.",
+    )
     by_type: dict[str, float] = Field(description="Strict rate per question type.")
     verdicts: list[ClaimVerdict]
 
@@ -161,10 +166,14 @@ def judge_report(
 ) -> FaithfulnessReport:
     """Judge every claim in a synthesis report.
 
+    A claim the judge cannot rule on, even after its own retry, is counted as
+    unjudged and left out of the rates. It is not given a verdict: guessing
+    would corrupt the number, and discarding the whole run for one flaky call
+    would throw away thirty good verdicts to punish one bad one. The count is
+    reported so a reader can see how much was actually measured.
+
     Raises:
-        SynthesisError: the judge failed on a claim. Not caught, because a
-            partial rate presented as a complete one is worse than no rate.
-        ValueError: the report contains no claims.
+        ValueError: the report contains no claims, or none could be judged.
     """
     rows = iter_claims(report)
     if not rows:
@@ -174,8 +183,13 @@ def judge_report(
     verdicts: list[ClaimVerdict] = []
     input_tokens = 0
     output_tokens = 0
+    unjudged = 0
     for row in rows:
-        result = judge(row.claim, row.passages)
+        try:
+            result = judge(row.claim, row.passages)
+        except SynthesisError:
+            unjudged += 1
+            continue
         input_tokens += result.input_tokens
         output_tokens += result.output_tokens
         verdicts.append(
@@ -189,6 +203,10 @@ def judge_report(
                 reason=result.reason,
             )
         )
+
+    if not verdicts:
+        msg = f"the judge could not rule on any of the {len(rows)} claims"
+        raise ValueError(msg)
 
     counts = {name: sum(1 for v in verdicts if v.verdict == name) for name in _VERDICT_NAMES}
     total = len(verdicts)
@@ -209,6 +227,7 @@ def judge_report(
         lenient_rate=sum(1 for v in verdicts if v.verdict in LENIENT_VERDICTS) / total,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
+        unjudged=unjudged,
         by_type=by_type,
         verdicts=verdicts,
     )

@@ -78,6 +78,11 @@ class TestUserPrompt:
         positions = [built.index(f'id="{i.passage.chunk_id}"') for i in items]
         assert positions == sorted(positions)
 
+    def test_asks_for_combined_claims(self, items: list[RetrievedEvidence]) -> None:
+        """One claim per paper reads as a list of findings, not an answer."""
+        built = build_user_prompt(QUESTION, items, max_claims=6)
+        assert "combine passages making the same point" in built
+
     def test_the_claim_limit_is_stated(self, items: list[RetrievedEvidence]) -> None:
         assert "at most 3 claims" in build_user_prompt(QUESTION, items, max_claims=3)
 
@@ -113,6 +118,8 @@ class TestSystemPrompt:
             "medical advice",
             "record no claims",
             "standalone sentence",
+            "Synthesise across passages",
+            "must not widen a claim past its evidence",
         ],
     )
     def test_states_the_rules_the_product_depends_on(self, requirement: str) -> None:

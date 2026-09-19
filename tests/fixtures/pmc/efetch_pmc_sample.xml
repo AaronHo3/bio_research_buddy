@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pmc-articleset>
+  <article article-type="research-article">
+    <front>
+      <article-meta>
+        <article-id pub-id-type="pmcid">PMC7000001</article-id>
+        <article-id pub-id-type="pmid">30000001</article-id>
+        <article-id pub-id-type="doi">10.0000/example.1</article-id>
+        <title-group><article-title>A study of something</article-title></title-group>
+      </article-meta>
+    </front>
+    <body>
+      <sec>
+        <title>Introduction</title>
+        <p>Base editors convert one base into another without a double strand break, which makes them attractive for correcting point mutations in living cells.</p>
+        <p>Their accuracy is limited by activity on bases other than the intended one.</p>
+      </sec>
+      <sec>
+        <title>Results</title>
+        <p>We observed that off-target editing arose chiefly from deaminase activity on transiently exposed single stranded DNA rather than from guide mismatches.</p>
+        <sec>
+          <title>Editing window</title>
+          <p>Within the editing window every cytosine was converted, so bystander edits accumulated at sites adjacent to the target base in most experiments we ran.</p>
+        </sec>
+        <table-wrap><label>Table 1</label><table><tr><td>99</td></tr></table></table-wrap>
+        <fig><caption><p>Figure caption text that should not be indexed as evidence at all.</p></caption></fig>
+      </sec>
+      <sec>
+        <title>Acknowledgements</title>
+        <p>We thank the sequencing core for assistance with the experiments described in this manuscript and for helpful discussion.</p>
+      </sec>
+      <sec>
+        <title>References</title>
+        <p>Smith J. Some paper. Journal. 2020. Jones A. Another paper. Journal. 2021. More citation text here.</p>
+      </sec>
+      <sec>
+        <title>Note</title>
+        <p>Too short.</p>
+      </sec>
+    </body>
+  </article>
+  <article article-type="review-article">
+    <front>
+      <article-meta>
+        <article-id pub-id-type="pmcid">PMC7000002</article-id>
+        <article-id pub-id-type="pmid">30000002</article-id>
+      </article-meta>
+    </front>
+  </article>
+  <article article-type="research-article">
+    <front>
+      <article-meta>
+        <article-id pub-id-type="pmcid">PMC7000003</article-id>
+        <article-id pub-id-type="pmid">30000003</article-id>
+      </article-meta>
+    </front>
+    <body>
+      <p>This article has no sections at all, only loose paragraphs of prose which should still be captured as a single body passage by the parser.</p>
+    </body>
+  </article>
+</pmc-articleset>

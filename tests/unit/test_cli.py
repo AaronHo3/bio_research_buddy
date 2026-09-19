@@ -47,7 +47,7 @@ class StubSource:
         self.error = error
         self.queries: list[SearchQuery] = []
 
-    def search(self, query: SearchQuery) -> list[Paper]:
+    def search(self, query: SearchQuery, term: str | None = None) -> list[Paper]:
         self.queries.append(query)
         if self.error:
             raise self.error

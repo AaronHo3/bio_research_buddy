@@ -95,6 +95,31 @@ Exit codes: 1 the literature source or database failed, 2 the input was invalid,
 
 For research and educational use only. Not medical advice.
 
+## Web demo
+
+A single page over the same application services the CLI uses.
+
+```bash
+uv sync --extra web
+uv run bio-copilot-web              # http://127.0.0.1:8000
+```
+
+Ask anything and it searches live PubMed. For each question it retrieves about thirty papers, ranks their abstracts, checks which have full text in PubMed Central, fetches the bodies of the best few that do, splits those into overlapping passages, ranks the passages, and asks a language model for claims mapped to the passages that support them. Every claim carries a link to the paper it came from, and the answer reports how many papers were read in full rather than by abstract.
+
+Roughly half of PubMed results have downloadable full text, so the rest are represented by their abstracts and the answer says so.
+
+The twelve example questions are separate: answers recorded during the measured evaluation run, replayed from `web/data/answers.json`. They cost nothing to serve, so the page has something to show with no key configured and no budget left.
+
+**Guardrails.** A daily token ceiling, after which answers fall back to the deterministic extractive provider and the page says so; an answer cache, so a repeated question is paid for once; and per-address rate limiting. The ceiling is charged from real usage after each call, so it can be overshot by at most one call. All three keep state in memory, so a restart resets the budget: a known limitation, recorded rather than solved, because solving it means a database this demo deliberately does not have.
+
+To rebuild the stored examples after a new evaluation run:
+
+```bash
+uv run bio-copilot export-demo evaluation/results/synthesis_sonnet.json     --out web/data/answers.json --db data/benchmark_v1.sqlite
+```
+
+The `Dockerfile` builds the benchmark corpus from the committed 449 KB `corpus.xml` at image-build time, so the container needs no database service at runtime.
+
 ## Current milestone
 
 Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 is done: a BM25 lexical baseline, a committed 60-paper benchmark with 12 questions and exhaustive relevance judgments, and measured results with an error analysis. The baseline reaches 0.837 recall and 0.826 nDCG at k=10, and its clearest failure is a vocabulary mismatch that semantic retrieval should close. Method, numbers, and limitations are in [docs/EVALUATION.md](docs/EVALUATION.md). Stage 4 compares six retrieval configurations on one benchmark: lexical BM25, two dense encoders, rank fusion, and two cross-encoder rerankers, one general and one trained on PubMed. No configuration wins everything, and the cheapest one still holds the best ranking at depth. The most useful result was a negative one that turned out to be about the pipeline rather than the model: a biomedical encoder looked clearly worse until it was fed documents in the format it was trained on, at which point it matched the best ranking in the project. Every number is in [docs/EVALUATION.md](docs/EVALUATION.md).

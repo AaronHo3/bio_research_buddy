@@ -3,8 +3,11 @@
 import hashlib
 from pathlib import Path
 
+import pytest
+
 from bio_research_copilot.adapters.pubmed import parse_efetch_xml
 from bio_research_copilot.domain import Paper, SectionChunker, Source
+from bio_research_copilot.domain.chunking import FullTextChunker, split_into_windows
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "pubmed"
 RECORDED = parse_efetch_xml((FIXTURES / "efetch_crispr.xml").read_text(encoding="utf-8"))
@@ -87,3 +90,108 @@ def test_recorded_fixture_yields_title_plus_abstract_each() -> None:
         assert passages[0].text == original.title
         assert passages[1].text == original.abstract
         assert all(p.source_id == original.source_id for p in passages)
+
+
+class TestSplitIntoWindows:
+    """Windowing full text.
+
+    A body is far too long to be one citable passage, so it is cut into
+    overlapping windows. The properties that matter are that nothing is lost at
+    a boundary and that a cut lands at a sentence end where one is available.
+    """
+
+    def test_short_text_is_one_window(self) -> None:
+        assert split_into_windows("Short enough.", size=100, overlap=10) == ["Short enough."]
+
+    def test_long_text_is_cut_into_several(self) -> None:
+        text = " ".join(f"Sentence number {n} of the body." for n in range(80))
+        windows = split_into_windows(text, size=300, overlap=40)
+        assert len(windows) > 3
+        assert all(len(w) <= 300 for w in windows)
+
+    def test_windows_overlap_so_a_boundary_sentence_survives_whole(self) -> None:
+        text = " ".join(f"Item {n} appears here." for n in range(60))
+        windows = split_into_windows(text, size=200, overlap=60)
+        joined = " ".join(windows)
+        for n in range(60):
+            assert f"Item {n} appears here." in joined
+
+    def test_prefers_to_cut_at_a_sentence_end(self) -> None:
+        text = "First sentence is reasonably long here. " * 12
+        windows = split_into_windows(text, size=220, overlap=30)
+        assert windows[0].endswith(".")
+
+    def test_whitespace_is_normalised(self) -> None:
+        windows = split_into_windows("  lots   of\n\n space  ", size=100, overlap=0)
+        assert windows == ["lots of space"]
+
+    def test_empty_text_yields_nothing(self) -> None:
+        assert split_into_windows("   ", size=100, overlap=10) == []
+
+    def test_terminates_on_pathological_overlap(self) -> None:
+        """A window that never advances would hang the request."""
+        text = "x" * 5000
+        windows = split_into_windows(text, size=100, overlap=99)
+        assert len(windows) < 5000
+
+    @pytest.mark.parametrize(
+        ("size", "overlap", "message"),
+        [
+            (0, 0, "size must be at least 1"),
+            (10, 10, "overlap must be at least 0 and smaller than size"),
+            (10, 20, "overlap must be at least 0 and smaller than size"),
+        ],
+    )
+    def test_invalid_configuration(self, size: int, overlap: int, message: str) -> None:
+        with pytest.raises(ValueError, match=message):
+            split_into_windows("text", size=size, overlap=overlap)
+
+
+class TestFullTextChunker:
+    def test_without_full_text_it_matches_the_abstract_chunker(self) -> None:
+        article = paper(abstract="A plain abstract about base editing accuracy.")
+        assert [p.text for p in FullTextChunker().split(article)] == [
+            p.text for p in SectionChunker().split(article)
+        ]
+
+    def test_full_text_passages_follow_the_abstract_ones(self) -> None:
+        article = paper(abstract="An abstract.")
+        chunker = FullTextChunker()
+        base = len(chunker.split(article))
+        passages = chunker.split_full_text(article, [("Results", "A finding. " * 40)])
+        assert len(passages) > base
+        assert [p.position for p in passages] == list(range(len(passages)))
+
+    def test_chunk_ids_are_unique_and_deterministic(self) -> None:
+        """A repeated id would silently overwrite evidence in the citation map."""
+        article = paper(abstract="An abstract.")
+        sections = [("Introduction", "Intro text. " * 40), ("Results", "Result text. " * 40)]
+        first = FullTextChunker().split_full_text(article, sections)
+        second = FullTextChunker().split_full_text(article, sections)
+        ids = [p.chunk_id for p in first]
+        assert len(ids) == len(set(ids))
+        assert ids == [p.chunk_id for p in second]
+
+    def test_the_section_label_is_carried_onto_every_piece(self) -> None:
+        """A claim should be able to say where in the paper it came from."""
+        article = paper(abstract="An abstract.")
+        long_section = "Method detail number one. " * 150  # comfortably over one window
+        passages = FullTextChunker().split_full_text(article, [("Methods", long_section)])
+        method_passages = [p for p in passages if p.section == "Methods"]
+        assert len(method_passages) > 1
+
+    def test_records_its_own_strategy_name_on_full_text(self) -> None:
+        article = paper(abstract="An abstract.")
+        passages = FullTextChunker().split_full_text(article, [("Results", "Text. " * 60)])
+        assert {p.strategy for p in passages if p.section == "Results"} == {"fulltext-v1"}
+
+    def test_content_hash_tracks_the_text(self) -> None:
+        article = paper(abstract="An abstract.")
+        passages = FullTextChunker().split_full_text(article, [("Results", "Text. " * 60)])
+        for passage in passages:
+            assert passage.content_hash == hashlib.sha256(passage.text.encode()).hexdigest()
+
+    def test_an_empty_section_list_leaves_only_the_abstract(self) -> None:
+        article = paper(abstract="An abstract.")
+        chunker = FullTextChunker()
+        assert len(chunker.split_full_text(article, [])) == len(chunker.split(article))

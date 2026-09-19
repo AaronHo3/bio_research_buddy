@@ -259,6 +259,92 @@ class TestUsage:
         assert provider.last_usage is None
 
 
+def make_sequence(
+    payloads: list[dict[str, Any]], **kwargs: Any
+) -> tuple[LlmSynthesizer, list[dict[str, Any]]]:
+    """A synthesizer whose transport returns each payload in turn, repeating the last."""
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(json.loads(request.content))
+        body = payloads[min(len(seen) - 1, len(payloads) - 1)]
+        return httpx2.Response(200, json=body)
+
+    provider = LlmSynthesizer(
+        api_key="test-key",
+        http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
+        max_retries=0,
+        **kwargs,
+    )
+    return provider, seen
+
+
+def truncated_response() -> dict[str, Any]:
+    """What a reply cut off mid-JSON actually looks like: an empty tool input."""
+    body = tool_response([])
+    body["content"] = [{"type": "tool_use", "id": "toolu_01", "name": TOOL_NAME, "input": {}}]
+    body["stop_reason"] = "max_tokens"
+    return body
+
+
+class TestTruncation:
+    """Regression: a reply hitting the token ceiling returned no claims at all.
+
+    Observed live once claims began combining passages, which made them longer.
+    The tool input arrives as ``{}`` with ``stop_reason`` of ``max_tokens``, so
+    the failure is diagnosable and the retry must ask for less rather than repeat
+    the same request.
+    """
+
+    def test_retries_with_fewer_claims(self) -> None:
+        good = tool_response([{"claim": "Fits now.", "evidence_ids": ["pubmed:1:0"]}])
+        provider, seen = make_sequence([truncated_response(), good], max_claims=6)
+        citations = provider.synthesize(QUESTION, EVIDENCE)
+        assert [c.claim for c in citations] == ["Fits now."]
+        assert len(seen) == 2
+        assert "at most 6 claims" in seen[0]["messages"][0]["content"]
+        assert "at most 3 claims" in seen[1]["messages"][0]["content"]
+
+    def test_a_persistent_truncation_names_the_token_limit(self) -> None:
+        provider, _ = make_sequence([truncated_response()], max_tokens=1024)
+        with pytest.raises(SynthesisError, match="cut off at the 1024 token limit"):
+            provider.synthesize(QUESTION, EVIDENCE)
+
+    def test_tokens_from_a_failed_attempt_are_still_charged(self) -> None:
+        """A budget that ignored failed calls would understate what was spent."""
+        provider, _ = make_sequence([truncated_response()], max_tokens=1024)
+        with pytest.raises(SynthesisError):
+            provider.synthesize(QUESTION, EVIDENCE)
+        assert provider.last_usage is not None
+        assert provider.last_usage.input_tokens == 200  # two attempts at 100 each
+
+    def test_usage_accumulates_across_a_retry(self) -> None:
+        good = tool_response([{"claim": "Fits now.", "evidence_ids": ["pubmed:1:0"]}])
+        provider, _ = make_sequence([truncated_response(), good])
+        provider.synthesize(QUESTION, EVIDENCE)
+        assert provider.last_usage is not None
+        assert provider.last_usage.input_tokens == 200
+
+
+class TestMalformedRetry:
+    def test_a_malformed_reply_is_retried_once(self) -> None:
+        """Sampling noise, unlike truncation, succeeds on an identical retry."""
+        bad = tool_response([])
+        bad["content"] = [{"type": "text", "text": "prose instead"}]
+        good = tool_response([{"claim": "Second time.", "evidence_ids": ["pubmed:1:0"]}])
+        provider, seen = make_sequence([bad, good])
+        assert [c.claim for c in provider.synthesize(QUESTION, EVIDENCE)] == ["Second time."]
+        assert len(seen) == 2
+
+    def test_a_persistently_malformed_reply_fails(self) -> None:
+        bad = tool_response([])
+        bad["content"] = [{"type": "text", "text": "prose instead"}]
+        provider, seen = make_sequence([bad])
+        with pytest.raises(SynthesisError, match="required format"):
+            provider.synthesize(QUESTION, EVIDENCE)
+        assert len(seen) == 2
+
+
 class TestFailure:
     def test_a_provider_error_becomes_a_synthesis_error(self) -> None:
         provider, _ = make(status=400)
