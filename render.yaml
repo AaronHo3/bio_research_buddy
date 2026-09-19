@@ -1,0 +1,32 @@
+# Render blueprint. Deploying from this file rather than the dashboard keeps the
+# configuration in version control, so what is running is reviewable.
+#
+# ANTHROPIC_API_KEY is deliberately marked sync:false: Render prompts for it once
+# and stores it as a secret. It must never be written into this file.
+services:
+  - type: web
+    name: bio-research-copilot
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Roughly 5,700 tokens go on a question, counting planning and synthesis,
+      # so this is about 35 questions a day before the demo falls back to the
+      # extractive provider. Raise it only as far as you are willing to pay.
+      - key: DEMO_DAILY_TOKENS
+        value: "200000"
+      - key: LLM_MODEL
+        value: claude-sonnet-5
+      - key: PLANNER_MODEL
+        value: claude-haiku-4-5-20251001
+      # NCBI asks clients to identify themselves. Put a real address here.
+      - key: NCBI_TOOL_NAME
+        value: bio-research-copilot
+      - key: NCBI_CONTACT_EMAIL
+        sync: false
+      # Optional: raises the NCBI rate limit from 3 to 10 requests a second.
+      - key: NCBI_API_KEY
+        sync: false

@@ -2,13 +2,32 @@
 
 [![CI](https://github.com/AaronHo3/bio_research_buddy/actions/workflows/ci.yml/badge.svg)](https://github.com/AaronHo3/bio_research_buddy/actions/workflows/ci.yml)
 
-Status: Stage 2 complete. A tested command-line tool retrieves PubMed records, normalizes them into typed domain objects, and stores them in SQLite with provenance. No embeddings, language model, or web interface exist yet.
+Ask a biomedical question in plain language and get an answer in which **every sentence
+links to the passage it came from**. It searches PubMed live, reads the full text of the
+papers PubMed Central makes available, ranks passages from those papers, and writes a
+cited answer. When the literature does not support an answer, it says so instead of
+producing one.
 
-An evidence-grounded research assistant for biomedical literature. The application will retrieve relevant papers, synthesize a concise answer, and connect claims to inspectable evidence.
+**Live demo:** not yet deployed. `render.yaml` is a ready blueprint and
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) has the steps; run it locally in the meantime
+with `uv sync --extra web && uv run bio-copilot-web`.
 
-## Planned demo
+What it does today, end to end:
 
-Users will be able to enter a focused biomedical question, inspect retrieved evidence, and view a source-linked synthesis with explicit limitations.
+1. **Plans a query.** A question is not a PubMed query, so a small model rewrites it,
+   supplying the vocabulary the literature uses. "Why does my heart muscle get thick"
+   becomes `("hypertrophic cardiomyopathy" OR "cardiac hypertrophy" OR ...)`.
+2. **Searches and reads.** About thirty papers are retrieved and ranked by abstract;
+   the best few that have downloadable full text are fetched and split into
+   overlapping passages.
+3. **Ranks passages** with a hand-written BM25 implementation.
+4. **Writes a cited answer.** Claims come back through a schema in which the supporting
+   passage ids are required, and the answer type refuses to exist if a citation points
+   at evidence the answer does not hold.
+
+Retrieval and synthesis are both measured against a hand-judged benchmark, including the
+results that went the wrong way. Numbers, method, and limitations are in
+[docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Engineering goals
 
@@ -97,6 +116,12 @@ For research and educational use only. Not medical advice.
 
 ## Web demo
 
+Run it locally with `uv sync --extra web` then `uv run bio-copilot-web`, or deploy
+it: `render.yaml` is a one-file blueprint and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+covers hosting, the spend ceiling to set before exposing a public URL, and what
+about the container is still unverified.
+
+
 A single page over the same application services the CLI uses.
 
 ```bash
@@ -124,7 +149,9 @@ The `Dockerfile` builds the benchmark corpus from the committed 449 KB `corpus.x
 
 Stages 1 and 2 of the plan in `PROJECT_SPEC.md` are done: a typed PubMed adapter behind a provider-neutral interface with retry and rate pacing, idempotent SQLite persistence with retrieval provenance and passages, fixture-based offline tests, one marked live test, and a CLI. Stage 3 is done: a BM25 lexical baseline, a committed 60-paper benchmark with 12 questions and exhaustive relevance judgments, and measured results with an error analysis. The baseline reaches 0.837 recall and 0.826 nDCG at k=10, and its clearest failure is a vocabulary mismatch that semantic retrieval should close. Method, numbers, and limitations are in [docs/EVALUATION.md](docs/EVALUATION.md). Stage 4 compares six retrieval configurations on one benchmark: lexical BM25, two dense encoders, rank fusion, and two cross-encoder rerankers, one general and one trained on PubMed. No configuration wins everything, and the cheapest one still holds the best ranking at depth. The most useful result was a negative one that turned out to be about the pipeline rather than the model: a biomedical encoder looked clearly worse until it was fed documents in the format it was trained on, at which point it matched the best ranking in the project. Every number is in [docs/EVALUATION.md](docs/EVALUATION.md).
 
-Stage 5 is under way. The end-to-end path now exists: a question retrieves evidence, synthesis produces claims, every claim carries the id of the passage it came from, and the answer type refuses to be constructed if a citation points at evidence it does not hold. Two providers sit behind one interface: a deterministic extractive baseline that cannot fabricate, and an optional hosted language model that can paraphrase and combine passages but inherits the same grounding guarantee. Both are now measured on the benchmark. The result that matters is not fluency but refusal: the extractive baseline answered two of the three questions the benchmark marks unanswerable, matching on shared words while missing the subject entirely, and both language models abstained on all three. Sonnet also cites relevant papers more often (0.775 against 0.663) while Haiku refuses a third of the answerable questions to buy its lower latency. Faithfulness, whether a claim follows from the passage it cites, still needs judgment and is the remaining Stage 5 gate.
+Stage 5 is under way. The end-to-end path now exists: a question retrieves evidence, synthesis produces claims, every claim carries the id of the passage it came from, and the answer type refuses to be constructed if a citation points at evidence it does not hold. Two providers sit behind one interface: a deterministic extractive baseline that cannot fabricate, and an optional hosted language model that can paraphrase and combine passages but inherits the same grounding guarantee. Both are now measured on the benchmark. The result that matters is not fluency but refusal: the extractive baseline answered two of the three questions the benchmark marks unanswerable, matching on shared words while missing the subject entirely, and both language models abstained on all three. Sonnet also cites relevant papers more often (0.775 against 0.663) while Haiku refuses a third of the answerable questions to buy its lower latency. Faithfulness was then measured too, by a model judge validated against a hand-labelled sample. Judging the extractive provider acts as a control, since its claims are verbatim copies and must score as supported: it scored 37 of 37 on claims drawn from inside a passage and 16 of 18 on claims identical to a title-only passage, so the judge is reliable where the task is well posed and about 11% unreliable on a class that the chunking strategy creates. Haiku is more faithful than Sonnet on the strict rate (0.909 against 0.700) while being nearly identical leniently, because Sonnet writes more claims and more of them reach past their evidence. Agreement between the judge and a human on twenty claims was 0.700 raw and 0.184 by Cohen's kappa, with every disagreement running one way, which is a calibration difference rather than noise.
+
+Stage 6 is a working web demo. It answers against live PubMed rather than the frozen benchmark corpus, reads full text where PubMed Central offers it, and shows the query it ran, how many papers it read in full, and the passage behind any claim on click. A daily token ceiling, an answer cache and per-address rate limiting make it safe to expose; past the ceiling it falls back to the extractive provider and says so. The benchmark numbers above describe the stored pipeline, not this one, and [docs/EVALUATION.md](docs/EVALUATION.md) states which is which.
 
 
 ## Evaluation

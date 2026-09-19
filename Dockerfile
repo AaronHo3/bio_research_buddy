@@ -1,26 +1,39 @@
-# The demo image. Builds its own corpus at image-build time from the committed
-# 449 KB PubMed XML, so the container needs no database service and no network
-# at runtime. No API key is used or required: stored answers are static data and
-# live answers use the deterministic extractive provider.
+# The demo image.
+#
+# Stateless at runtime: each question is answered from live PubMed, so there is
+# no database to provision and nothing to keep in sync. The only data baked in is
+# web/data/answers.json, the recorded example answers, which are static.
+#
+# ANTHROPIC_API_KEY is read from the environment and must be supplied as a secret
+# by the host, never built into the image. Without it the container still serves:
+# answers fall back to the deterministic extractive provider and the page says so.
+#
+# Spend is capped by DEMO_DAILY_TOKENS. Set it deliberately before exposing this
+# publicly; the default is a ceiling, not a recommendation.
 
 FROM python:3.12-slim
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-# Dependencies first, so edits to source do not invalidate the cached layer.
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+# Dependencies first, so editing source does not invalidate the cached layer.
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
-RUN uv sync --frozen --extra web --no-dev
+RUN uv sync --frozen --extra web --extra llm --no-dev
 
-COPY evaluation/benchmark_v1 ./evaluation/benchmark_v1
+# The recorded example answers. Small, and the only state the container holds.
 COPY web ./web
 
-# The SQLite corpus is not in version control; it is rebuilt from the XML.
-RUN uv run bio-copilot load-corpus evaluation/benchmark_v1/corpus.xml \
-      --db data/benchmark_v1.sqlite
-
-EXPOSE 8000
+# Hosts inject the port they expect to reach; 8000 is only the local default.
 ENV PORT=8000
-CMD ["sh", "-c", "uv run uvicorn --factory bio_research_copilot.web.app:create_app --host 0.0.0.0 --port ${PORT}"]
+EXPOSE 8000
+
+# build_default_app reads settings and wires the real adapters. create_app takes
+# a literature source as an argument and cannot be used as a factory here.
+CMD ["sh", "-c", "uv run uvicorn --factory bio_research_copilot.web.app:build_default_app --host 0.0.0.0 --port ${PORT}"]

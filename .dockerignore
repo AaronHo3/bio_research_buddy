@@ -1,0 +1,21 @@
+# Keep the build context small, and keep anything private out of the image.
+.git
+.venv
+.env
+.env.local
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+tests/
+docs/
+notes/
+scratch/
+data/
+models/
+evaluation/results/
+*.sqlite
