@@ -1,5 +1,8 @@
 # Deploying the demo
 
+Currently deployed at <https://bio-research-copilot.onrender.com>, on Render's free plan from `render.yaml`.
+
+
 The demo is a stateless web service. Each question is answered from live PubMed,
 so there is no database to provision and nothing to keep in sync. The only data
 the container holds is `web/data/answers.json`, the recorded example answers.
@@ -97,9 +100,13 @@ a model is available, and what remains of the day's budget:
 `model_available: false` means either no key reached the container or the budget
 is spent. The demo still works in that state; it answers extractively.
 
-## What is not verified
+## What is and is not verified
 
-The container has never been built. Docker is not installed on the machine this
-was developed on, so the image is unbuilt and untested, though the start command
-it runs has been checked directly and the application starts both with a key and
-without one. Expect to fix something on the first build rather than none.
+Verified against the live deployment: the health endpoint, the served page, the
+recorded examples, and a real question answered end to end in about eighteen
+seconds, with query planning, full-text retrieval and model synthesis all working.
+
+Not verified: the `Dockerfile`. Docker is not installed on the machine this was
+developed on, and the Render deployment uses the native Python runtime rather than
+the image, so that file remains unbuilt. Anyone deploying to a Docker-based host
+should expect to fix something on the first build.

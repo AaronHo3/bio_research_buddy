@@ -8,9 +8,11 @@ papers PubMed Central makes available, ranks passages from those papers, and wri
 cited answer. When the literature does not support an answer, it says so instead of
 producing one.
 
-**Live demo:** not yet deployed. `render.yaml` is a ready blueprint and
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) has the steps; run it locally in the meantime
-with `uv sync --extra web && uv run bio-copilot-web`.
+**▶ Try it: [bio-research-copilot.onrender.com](https://bio-research-copilot.onrender.com)**
+It runs on a free instance that sleeps when idle, so the first load can take up to a
+minute to wake. A question then takes fifteen to twenty seconds, because it really does
+search PubMed and read the papers. To run it locally instead:
+`uv sync --extra web && uv run bio-copilot-web`.
 
 What it does today, end to end:
 
@@ -116,10 +118,10 @@ For research and educational use only. Not medical advice.
 
 ## Web demo
 
-Run it locally with `uv sync --extra web` then `uv run bio-copilot-web`, or deploy
-it: `render.yaml` is a one-file blueprint and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-covers hosting, the spend ceiling to set before exposing a public URL, and what
-about the container is still unverified.
+Deployed at [bio-research-copilot.onrender.com](https://bio-research-copilot.onrender.com), from `render.yaml`.
+Run it locally with `uv sync --extra web` then `uv run bio-copilot-web`.
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) covers hosting and the spend ceiling to set
+before exposing a public URL.
 
 
 A single page over the same application services the CLI uses.
