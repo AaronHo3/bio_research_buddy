@@ -203,6 +203,33 @@ class TestCitedPassages:
                     assert answer["passages"].get(chunk_id)
 
 
+class TestSecrets:
+    """A public URL must not hand a visitor anything about the provider.
+
+    The API key is the obvious thing to check, but the provider's own error text
+    is the likelier leak: it names internal plumbing and a visitor cannot act on
+    it, so it belongs in a log rather than a response body.
+    """
+
+    def test_a_provider_failure_says_nothing_about_the_provider(self, data_path: Path) -> None:
+        client, _ = build(
+            data_path, build_synthesizer=lambda: StubSynthesizer(fail=True), daily_tokens=10_000
+        )
+        response = client.post("/api/answer", json={"question": ANSWERABLE})
+        assert response.status_code == 502
+        detail = response.json()["detail"]
+        assert "provider exploded" not in detail
+        assert detail == "The answer could not be written just now. Please try again."
+
+    def test_health_exposes_no_credentials(self, data_path: Path) -> None:
+        client, _ = build(
+            data_path, build_synthesizer=lambda: StubSynthesizer(), daily_tokens=10_000
+        )
+        body = client.get("/api/health").text
+        assert "api_key" not in body.lower()
+        assert "sk-ant" not in body
+
+
 class TestBudget:
     def test_uses_the_model_while_budget_remains(self, data_path: Path) -> None:
         client, _ = build(

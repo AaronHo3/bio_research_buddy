@@ -18,6 +18,7 @@ Three guards stand between this and an unbounded bill, described in ``guards``.
 Together they mean the worst case for a day is the configured number of tokens.
 """
 
+import logging
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,8 @@ from bio_research_copilot.web.guards import (
     RateLimiter,
     TokenBudget,
 )
+
+log = logging.getLogger(__name__)
 
 STATIC = Path(__file__).parent / "static"
 DEFAULT_DATA = Path("web/data/answers.json")
@@ -205,7 +208,15 @@ def create_app(
                 status_code=503, detail=f"PubMed could not be reached: {exc}"
             ) from exc
         except SynthesisError as exc:
-            raise HTTPException(status_code=502, detail=f"Synthesis failed: {exc}") from exc
+            # The provider's own message can name internal plumbing, and a visitor
+            # cannot act on it, so it is logged rather than returned. Causes a
+            # visitor *can* act on, being rate limited or PubMed being down, keep
+            # their specific messages.
+            log.warning("synthesis failed: %s", exc)
+            raise HTTPException(
+                status_code=502,
+                detail="The answer could not be written just now. Please try again.",
+            ) from exc
         except ValidationError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
